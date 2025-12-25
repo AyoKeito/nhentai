@@ -36,7 +36,7 @@ From Github:
 
 .. code-block:: bash
 
-    git clone <your-fork-url>
+    git clone https://github.com/AyoKeito/nhentai
     cd nhentai
     pip install --no-cache-dir .
 
@@ -44,7 +44,7 @@ Using uv (recommended):
 
 .. code-block:: bash
 
-    git clone <your-fork-url>
+    git clone https://github.com/AyoKeito/nhentai
     cd nhentai
     uv venv
     source venv/Scripts/activate  # On Windows Git Bash
@@ -56,7 +56,7 @@ Build Docker container:
 
 .. code-block:: bash
 
-    git clone <your-fork-url>
+    git clone https://github.com/AyoKeito/nhentai
     cd nhentai
     docker build -t nhentai:latest .
     docker run --rm -it -v ~/Downloads/doujinshi:/output -v ~/.nhentai/:/root/.nhentai nhentai --id 123855
@@ -84,20 +84,27 @@ The complete cookie format is:
 
 **How to get ALL cookies:**
 
+**Method 1: Storage/Application Tab (Recommended)**
+
 1. Login to nhentai.net in your browser
 2. Open Developer Tools (F12)
-3. Go to Network tab
-4. Refresh the page (F5)
-5. Click on any request to nhentai.net
-6. Find the **Cookie** header in Request Headers
-7. Copy the ENTIRE cookie value
-8. Set it with: ``nhentai --cookie "PASTE_HERE"``
+3. Go to Storage/Application tab:
 
-**Quick access by browser:**
+   - **Firefox**: Storage tab → Cookies → https://nhentai.net
+   - **Chrome**: Application tab → Storage → Cookies → https://nhentai.net
 
-| (Chrome) |ve| |ld| More tools    |ld| Developer tools     |ld| Network tab |ld| Select request |ld| Headers |ld| Request Headers |ld| Cookie
-| (Firefox) |hv| |ld| Web Developer |ld| Web Developer Tools |ld| Network tab |ld| Select request |ld| Headers |ld| Request Headers |ld| Cookie
-|
+4. Copy ALL cookie values and format as: ``"cf_clearance=VALUE; sessionid=VALUE; csrftoken=VALUE; session-affinity=VALUE"``
+5. Set it with: ``nhentai --cookie "YOUR_COOKIES_HERE"``
+
+**Method 2: Network Tab (Alternative)**
+
+1. Open Developer Tools (F12) → Network tab
+2. Refresh the page (F5)
+3. Click on the **main page request** (the first one to nhentai.net, NOT image requests)
+4. Find the **Cookie** header in Request Headers
+5. Copy the ENTIRE cookie value
+
+**Note**: Image requests (to t4.nhentai.net, i1.nhentai.net, etc.) only show ``cf_clearance``. You need to check requests to the main nhentai.net domain or use the Storage tab.
 
 See ``COOKIE_GUIDE.md`` for detailed instructions.
 
