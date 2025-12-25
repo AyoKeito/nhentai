@@ -82,7 +82,6 @@ def serialize_comic_xml(doujinshi, output_dir):
 
 def serialize_info_txt(doujinshi, output_dir: str):
     info_txt_path = os.path.join(output_dir, 'info.txt')
-    f = open(info_txt_path, 'w', encoding='utf-8')
 
     fields = ['TITLE', 'ORIGINAL TITLE', 'AUTHOR', 'ARTIST', 'GROUPS', 'CIRCLE', 'SCANLATOR',
               'TRANSLATOR', 'PUBLISHER', 'DESCRIPTION', 'STATUS', 'CHAPTERS', 'PAGES',
@@ -90,14 +89,14 @@ def serialize_info_txt(doujinshi, output_dir: str):
               'SERIES', 'PARODY', 'URL']
 
     temp_dict = CaseInsensitiveDict(dict(doujinshi.table))
-    for i in fields:
-        v = temp_dict.get(i)
-        v = temp_dict.get(f'{i}s') if v is None else v
-        v = doujinshi.info.get(i.lower(), None) if v is None else v
-        v = doujinshi.info.get(f'{i.lower()}s', "Unknown") if v is None else v
-        f.write(f'{i}: {v}\n')
 
-    f.close()
+    with open(info_txt_path, 'w', encoding='utf-8') as f:
+        for i in fields:
+            v = temp_dict.get(i)
+            v = temp_dict.get(f'{i}s') if v is None else v
+            v = doujinshi.info.get(i.lower(), None) if v is None else v
+            v = doujinshi.info.get(f'{i.lower()}s', "Unknown") if v is None else v
+            f.write(f'{i}: {v}\n')
 
 
 def xml_write_simple_tag(f, name, val, indent=1):
@@ -113,11 +112,15 @@ def merge_json():
         files = os.listdir(folder)
         if 'metadata.json' not in files:
             continue
-        data_folder = output_dir + folder + '/' + 'metadata.json'
-        json_file = open(data_folder, 'r')
-        json_dict = json.load(json_file)
-        json_dict['Folder'] = folder
-        lst.append(json_dict)
+        data_folder = os.path.join(output_dir, folder, 'metadata.json')
+        try:
+            with open(data_folder, 'r') as json_file:
+                json_dict = json.load(json_file)
+                json_dict['Folder'] = folder
+                lst.append(json_dict)
+        except (IOError, json.JSONDecodeError) as e:
+            # Silently skip if file can't be read
+            continue
     return lst
 
 

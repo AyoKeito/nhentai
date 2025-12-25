@@ -112,10 +112,17 @@ class Doujinshi(object):
         if self.downloader:
             download_queue = []
             if len(self.ext) != self.pages:
-                logger.warning('Page count and ext count do not equal')
+                logger.warning(f'Page count ({self.pages}) != ext count ({len(self.ext)})')
 
-            for i in range(1, min(self.pages, len(self.ext)) + 1):
-                download_queue.append(f'{IMAGE_URL}/{self.img_id}/{i}.{self.ext[i-1]}')
+            if not self.ext:
+                logger.error('No extensions found, cannot download')
+                return False
+
+            DEFAULT_EXT = 'jpg'
+            for i in range(1, self.pages + 1):
+                # Use extension from array if available, otherwise default
+                ext = self.ext[i-1] if i <= len(self.ext) else DEFAULT_EXT
+                download_queue.append(f'{IMAGE_URL}/{self.img_id}/{i}.{ext}')
 
             return self.downloader.start_download(download_queue, self.filename)
         else:

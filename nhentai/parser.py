@@ -54,9 +54,23 @@ def _get_title_and_id(response):
     doujinshi_search_result = html.find_all('div', attrs={'class': 'gallery'})
     for doujinshi in doujinshi_search_result:
         doujinshi_container = doujinshi.find('div', attrs={'class': 'caption'})
+        if not doujinshi_container:
+            logger.warning('Caption div not found, skipping')
+            continue
         title = doujinshi_container.text.strip()
         title = title if len(title) < 85 else title[:82] + '...'
-        id_ = re.search('/g/([0-9]+)/', doujinshi.a['href']).group(1)
+
+        a_tag = doujinshi.find('a')
+        if not a_tag or 'href' not in a_tag.attrs:
+            logger.warning('Link not found, skipping')
+            continue
+
+        id_match = re.search('/g/([0-9]+)/', a_tag['href'])
+        if not id_match:
+            logger.warning('ID not found in href, skipping')
+            continue
+
+        id_ = id_match.group(1)
         result.append({'id': id_, 'title': title})
 
     return result
@@ -74,15 +88,15 @@ def favorites_parser(page=None):
     if count == 0:
         logger.warning('No favorites found')
         return []
-    pages = int(count / 25)
+
+    pages = max(1, int(count / 25))
 
     if page:
         page_range_list = page
     else:
-        if pages:
-            pages += 1 if count % (25 * pages) else 0
-        else:
-            pages = 1
+        # Add extra page if there's a remainder
+        if count % 25 != 0:
+            pages += 1
 
         logger.info(f'You have {count} favorites in {pages} pages.')
 
@@ -111,7 +125,9 @@ def favorites_parser(page=None):
                     result.extend(temp_result)
                     break
 
-            except Exception as e:
+            except (httpx.HTTPError, Exception) as e:
+                if isinstance(e, (KeyboardInterrupt, SystemExit)):
+                    raise
                 logger.warning(f'Error: {e}, retrying ({i} times) ...')
 
     return result
@@ -132,8 +148,8 @@ def doujinshi_parser(id_, counter=0):
         if response.status_code in (200, ):
             response = response.content
         elif response.status_code in (404,):
-            logger.error(f'Doujinshi with id {id_} cannot be found')
-            return []
+            logger.error(f'Doujinshi with id {id_} cannot be found (404)')
+            return None
         else:
             counter += 1
 
@@ -152,10 +168,23 @@ def doujinshi_parser(id_, counter=0):
     html = BeautifulSoup(response, 'html.parser')
     doujinshi_info = html.find('div', attrs={'id': 'info'})
 
-    title = doujinshi_info.find('h1').text
-    pretty_name = doujinshi_info.find('h1').find('span', attrs={'class': 'pretty'}).text
+    if not doujinshi_info:
+        logger.error(f'Info div not found for doujinshi {id_}')
+        return None
+
+    h1_tag = doujinshi_info.find('h1')
+    if not h1_tag:
+        logger.error(f'Title not found for doujinshi {id_}')
+        return None
+    title = h1_tag.text
+
+    pretty_span = h1_tag.find('span', attrs={'class': 'pretty'})
+    pretty_name = pretty_span.text if pretty_span else ''
+
     subtitle = doujinshi_info.find('h2')
-    favorite_counts = doujinshi_info.find('span', class_='nobold').text.strip('(').strip(')')
+
+    favorite_span = doujinshi_info.find('span', class_='nobold')
+    favorite_counts = favorite_span.text.strip('(').strip(')') if favorite_span else '0'
 
     doujinshi['name'] = title
     doujinshi['pretty_name'] = pretty_name
@@ -163,15 +192,33 @@ def doujinshi_parser(id_, counter=0):
     doujinshi['favorite_counts'] = int(favorite_counts) if favorite_counts and favorite_counts.isdigit() else 0
 
     doujinshi_cover = html.find('div', attrs={'id': 'cover'})
-    # img_id = re.search('/galleries/([0-9]+)/cover.(jpg|png|gif|webp)$',
-    #                   doujinshi_cover.a.img.attrs['data-src'])
+
+    if not doujinshi_cover:
+        logger.critical(f'Cover div not found for id: {id_}')
+        return None
+
+    cover_a = doujinshi_cover.find('a')
+    if not cover_a:
+        logger.critical(f'Cover link not found for id: {id_}')
+        return None
+
+    cover_img = cover_a.find('img')
+    if not cover_img or 'data-src' not in cover_img.attrs:
+        logger.critical(f'Cover image not found for id: {id_}')
+        return None
 
     # fix cover.webp.webp
-    img_id = re.search(r'/galleries/(\d+)/cover(\.webp|\.jpg|\.png)?\.\w+$', doujinshi_cover.a.img.attrs['data-src'])
+    img_id = re.search(r'/galleries/(\d+)/cover(\.webp|\.jpg|\.png)?\.\w+$', cover_img.attrs['data-src'])
 
     ext = []
     for i in html.find_all('div', attrs={'class': 'thumb-container'}):
-        base_name = os.path.basename(i.img.attrs['data-src'])
+        thumb_img = i.find('img')
+        if not thumb_img or 'data-src' not in thumb_img.attrs:
+            logger.warning('Thumb image missing data-src, using jpg as default')
+            ext.append('jpg')
+            continue
+
+        base_name = os.path.basename(thumb_img.attrs['data-src'])
         ext_name = base_name.split('.')
         if len(ext_name) == 3:
             ext.append(ext_name[1])
@@ -277,7 +324,7 @@ def search_parser(keyword, sorting, page, is_page_all=False):
         i = 0
 
         logger.info(f'Searching doujinshis using keywords "{keyword}" on page {p}{total}')
-        while i < constant.RETRY_TIMES:
+        for i in range(constant.RETRY_TIMES):
             try:
                 url = request('get', url=constant.SEARCH_URL, params={'query': keyword,
                                                                       'page': p, 'sort': sorting}).url
@@ -286,10 +333,12 @@ def search_parser(keyword, sorting, page, is_page_all=False):
                     logger.debug(f'Request URL: {url}')
 
                 response = request('get', url.replace('%2B', '+')).json()
+                break  # Break only on success
             except Exception as e:
-                logger.critical(str(e))
+                logger.warning(f'Search failed (attempt {i+1}/{constant.RETRY_TIMES}): {e}')
                 response = None
-            break
+                if i == constant.RETRY_TIMES - 1:
+                    logger.critical('Search failed after all retries')
 
         if constant.DEBUG:
             logger.debug(f'Response: {response}')

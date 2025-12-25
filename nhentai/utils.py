@@ -63,6 +63,8 @@ async def async_request(method, url, proxy = None, **kwargs):
 
     async with httpx.AsyncClient(headers=headers, verify=False, proxy=proxy, **kwargs) as client:
         response = await client.request(method, url, **kwargs)
+        # Consume response body before client closes to prevent connection errors
+        await response.aread()
 
     return response
 
@@ -251,19 +253,41 @@ def generate_main_html(output_dir=f'.{PATH_SEPARATOR}'):
                 </div>\n\
             </div>\n'
 
-    os.chdir(output_dir)
-    doujinshi_dirs = next(os.walk('.'))[1]
+    try:
+        if not os.path.exists(output_dir):
+            logger.error(f'Output directory does not exist: {output_dir}')
+            return
+        if not os.access(output_dir, os.R_OK):
+            logger.error(f'No read permission for directory: {output_dir}')
+            return
+
+        abs_output = os.path.abspath(output_dir)
+        doujinshi_dirs = next(os.walk(abs_output))[1]
+    except PermissionError:
+        logger.error(f'Permission denied accessing: {output_dir}')
+        return
+    except OSError as e:
+        logger.error(f'Error accessing directory: {e}')
+        return
 
     for folder in doujinshi_dirs:
-        files = os.listdir(folder)
-        files.sort()
+        folder_path = os.path.join(abs_output, folder)
+        files = os.listdir(folder_path)
 
-        if 'index.html' in files:
-            logger.info(f'Add doujinshi "{folder}"')
-        else:
+        if not files:
+            logger.warning(f'Empty folder, skipping: {folder}')
             continue
 
-        image = files[0]  # 001.jpg or 001.png
+        files.sort()
+
+        if 'index.html' not in files:
+            continue
+
+        logger.info(f'Add doujinshi "{folder}"')
+        image = files[0] if files else None
+        if not image:
+            logger.warning(f'No files found in {folder}')
+            continue
         if folder is not None:
             title = folder.replace('_', ' ')
         else:
@@ -334,10 +358,14 @@ def generate_doc(file_type='', output_dir='.', doujinshi_obj=None, regenerate=Fa
 
 def generate_metadata(output_dir, doujinshi_obj=None):
     doujinshi_dir, filename = parse_doujinshi_obj(output_dir, doujinshi_obj, '')
-    serialize_json(doujinshi_obj, doujinshi_dir)
-    serialize_comic_xml(doujinshi_obj, doujinshi_dir)
-    serialize_info_txt(doujinshi_obj, doujinshi_dir)
-    logger.log(16, f'Metadata files have been written to "{doujinshi_dir}"')
+
+    try:
+        serialize_json(doujinshi_obj, doujinshi_dir)
+        serialize_comic_xml(doujinshi_obj, doujinshi_dir)
+        serialize_info_txt(doujinshi_obj, doujinshi_dir)
+        logger.log(16, f'Metadata files have been written to "{doujinshi_dir}"')
+    except (IOError, OSError, PermissionError) as e:
+        logger.error(f'Failed to write metadata: {e}')
 
 
 def format_filename(s, length=MAX_FIELD_LENGTH, _truncate_only=False):
