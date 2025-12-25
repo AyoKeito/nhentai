@@ -106,13 +106,15 @@ def xml_write_simple_tag(f, name, val, indent=1):
 def merge_json():
     lst = []
     output_dir = f".{PATH_SEPARATOR}"
-    os.chdir(output_dir)
-    doujinshi_dirs = next(os.walk('.'))[1]
+    # Use absolute path instead of changing working directory
+    abs_output = os.path.abspath(output_dir)
+    doujinshi_dirs = next(os.walk(abs_output))[1]
     for folder in doujinshi_dirs:
-        files = os.listdir(folder)
+        folder_path = os.path.join(abs_output, folder)
+        files = os.listdir(folder_path)
         if 'metadata.json' not in files:
             continue
-        data_folder = os.path.join(output_dir, folder, 'metadata.json')
+        data_folder = os.path.join(abs_output, folder, 'metadata.json')
         try:
             with open(data_folder, 'r') as json_file:
                 json_dict = json.load(json_file)

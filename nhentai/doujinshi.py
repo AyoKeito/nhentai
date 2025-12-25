@@ -82,6 +82,14 @@ class Doujinshi(object):
 
         base_path = os.path.join(self.downloader.path, self.filename)
 
+        # Validate that the resolved path stays within expected directory
+        abs_base = os.path.abspath(base_path)
+        expected_prefix = os.path.abspath(self.downloader.path)
+        if not abs_base.startswith(expected_prefix + os.sep) and abs_base != expected_prefix:
+            logger.error(f'Invalid filename detected: path traversal attempt blocked')
+            logger.error(f'Expected: {expected_prefix}, Got: {abs_base}')
+            return False
+
         # regenerate, re-download
         if options.regenerate:
             return True
@@ -118,7 +126,21 @@ class Doujinshi(object):
                 logger.error('No extensions found, cannot download')
                 return False
 
+            # Validate image ID is numeric (SEC-06)
+            if not str(self.img_id).isdigit():
+                logger.error(f'Invalid image ID: {self.img_id} - must be numeric')
+                return False
+
+            # Define allowed extensions (SEC-06)
+            ALLOWED_EXT = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
             DEFAULT_EXT = 'jpg'
+
+            # Validate all extensions before constructing URLs
+            for ext in self.ext:
+                if ext not in ALLOWED_EXT:
+                    logger.error(f'Invalid extension detected: {ext} - only {ALLOWED_EXT} allowed')
+                    return False
+
             for i in range(1, self.pages + 1):
                 # Use extension from array if available, otherwise default
                 ext = self.ext[i-1] if i <= len(self.ext) else DEFAULT_EXT
