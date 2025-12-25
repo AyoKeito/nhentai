@@ -1,4 +1,4 @@
-# coding: utf-
+# coding: utf-8
 
 import os
 import asyncio
@@ -8,6 +8,7 @@ import zipfile
 import io
 
 from urllib.parse import urlparse
+from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn, DownloadColumn, TransferSpeedColumn
 from nhentai import constant
 from nhentai.logger import logger
 from nhentai.utils import Singleton, async_request
@@ -44,25 +45,38 @@ class Downloader(Singleton):
 
     async def fiber(self, tasks):
         self.semaphore = asyncio.Semaphore(self.threads)
-        for completed_task in asyncio.as_completed(tasks):
-            try:
-                result = await completed_task
-                if result[0] > 0:
-                    logger.info(f'{result[1]} download completed')
-                else:
-                    raise Exception(f'{result[1]} download failed, return value {result[0]}')
-            except Exception as e:
-                logger.error(f'An error occurred: {e}')
-                if self.exit_on_fail:
-                    raise Exception('User intends to exit on fail')
+
+        with Progress(
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TextColumn("•"),
+            TextColumn("[cyan]{task.completed}/{task.total}"),
+            TextColumn("pages"),
+            TimeRemainingColumn(),
+        ) as progress:
+            download_task = progress.add_task("[green]Downloading", total=len(tasks))
+
+            for completed_task in asyncio.as_completed(tasks):
+                try:
+                    result = await completed_task
+                    if result[0] > 0:
+                        progress.update(download_task, advance=1)
+                    else:
+                        progress.update(download_task, advance=1)
+                        raise Exception(f'{result[1]} download failed, return value {result[0]}')
+                except Exception as e:
+                    # Log errors using logger, rich will handle the display
+                    progress.console.print(f'[red]Error:[/red] {e}')
+                    if self.exit_on_fail:
+                        raise Exception('User intends to exit on fail')
 
     async def _semaphore_download(self, *args, **kwargs):
         async with self.semaphore:
             return await self.download(*args, **kwargs)
 
     async def download(self, url, folder='', filename='', retried=0, proxy=None, length=0):
-        logger.info(f'Starting to download {url} ...')
-
+        # Suppress verbose logging during downloads - progress bar shows status
         if self.delay:
             await asyncio.sleep(self.delay)
 
@@ -80,7 +94,7 @@ class Downloader(Singleton):
             if response.status_code != 200:
                 path = urlparse(url).path
                 for mirror in constant.IMAGE_URL_MIRRORS:
-                    logger.info(f"Try mirror: {mirror}{path}")
+                    # Silently try mirrors - progress bar shows overall status
                     mirror_url = f'{mirror}{path}'
                     response = await async_request('GET', mirror_url, timeout=self.timeout, proxies=proxy)
                     if response.status_code == 200:
@@ -92,7 +106,7 @@ class Downloader(Singleton):
 
         except (httpx.HTTPStatusError, httpx.TimeoutException, httpx.ConnectError) as e:
             if retried < constant.RETRY_TIMES:
-                logger.warning(f'Download {filename} failed, retrying({retried + 1}) times...')
+                # Silently retry - progress bar shows overall status
                 return await self.download(
                     url=url,
                     folder=folder,
@@ -101,7 +115,8 @@ class Downloader(Singleton):
                     proxy=proxy,
                 )
             else:
-                logger.warning(f'Download {filename} failed with {constant.RETRY_TIMES} times retried, skipped')
+                # Only log when all retries exhausted
+                logger.warning(f'Failed to download {filename} after {constant.RETRY_TIMES} retries')
                 return -2, url
 
         except Exception as e:
@@ -148,7 +163,7 @@ class Downloader(Singleton):
         if self.path:
             folder = os.path.join(self.path, folder)
 
-        logger.info(f'Doujinshi will be saved at "{folder}"')
+        logger.log(16, f'Saving to: {folder}')
         self.create_storage_object(folder)
 
         if os.getenv('DEBUG', None) == 'NODOWNLOAD':
@@ -156,7 +171,7 @@ class Downloader(Singleton):
             return True
 
         digit_length = len(str(len(queue)))
-        logger.info(f'Total download pages: {len(queue)}')
+        logger.log(16, f'Total pages: {len(queue)}')
         coroutines = [
             self._semaphore_download(url, filename=os.path.basename(urlparse(url).path), length=digit_length)
             for url in queue

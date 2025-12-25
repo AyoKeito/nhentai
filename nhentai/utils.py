@@ -40,9 +40,15 @@ def request(method, url, **kwargs):
     session.headers.update(get_headers())
 
     if not kwargs.get('proxies', None):
+        proxy = constant.CONFIG['proxy']
+        # Normalize proxy URL: use http:// prefix for standard HTTP proxies
+        # to avoid curl_cffi warning about https:// prefix
+        if proxy and proxy.startswith('https://'):
+            proxy = 'http://' + proxy[8:]
+
         kwargs['proxies'] = {
-            'https': constant.CONFIG['proxy'],
-            'http': constant.CONFIG['proxy'],
+            'https': proxy,
+            'http': proxy,
         }
 
     return getattr(session, method)(url, verify=False, **kwargs)
