@@ -5,6 +5,7 @@ import re
 import os
 import zipfile
 import shutil
+import warnings
 
 import httpx
 from curl_cffi import requests
@@ -16,6 +17,9 @@ from nhentai import constant
 from nhentai.constant import PATH_SEPARATOR
 from nhentai.logger import logger
 from nhentai.serializer import serialize_comic_xml, serialize_json, serialize_info_txt, set_js_database
+
+# Suppress curl_cffi proxy protocol warning
+warnings.filterwarnings('ignore', message='.*https over https proxy.*', category=RuntimeWarning)
 
 MAX_FIELD_LENGTH = 100
 EXTENSIONS = ('.png', '.jpg', '.jpeg', '.gif', '.webp')
@@ -40,15 +44,9 @@ def request(method, url, **kwargs):
     session.headers.update(get_headers())
 
     if not kwargs.get('proxies', None):
-        proxy = constant.CONFIG['proxy']
-        # Normalize proxy URL: use http:// prefix for standard HTTP proxies
-        # to avoid curl_cffi warning about https:// prefix
-        if proxy and proxy.startswith('https://'):
-            proxy = 'http://' + proxy[8:]
-
         kwargs['proxies'] = {
-            'https': proxy,
-            'http': proxy,
+            'https': constant.CONFIG['proxy'],
+            'http': constant.CONFIG['proxy'],
         }
 
     return getattr(session, method)(url, verify=False, **kwargs)
