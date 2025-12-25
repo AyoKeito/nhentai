@@ -8,85 +8,99 @@ nhentai
 |version|
 |license|
 
+**🔧 FIXED FORK - CLOUDFLARE BYPASS**
+
+This is a fixed fork of the original nhentai CLI tool with Cloudflare bypass functionality.
+
+**Key Changes:**
+- ✅ Bypasses Cloudflare protection using curl_cffi
+- ✅ Works with current nhentai.net anti-bot measures
+- ✅ Full authentication support with proper cookies
+- ✅ All features functional (download, search, favorites)
+
+**Note:** This fork must be installed from source - it is not available on PyPI.
 
 nhentai is a CLI tool for downloading doujinshi from `nhentai.net <https://nhentai.net>`_
 
+Original repository: `https://github.com/RicterZ/nhentai <https://github.com/RicterZ/nhentai>`_
+
 GUI version: `https://github.com/edgar1016/nhentai-GUI <https://github.com/edgar1016/nhentai-GUI>`_
 
-===================
-Manual Installation
-===================
+============
+Installation
+============
+
+**This fork must be built from source.**
+
 From Github:
 
-.. code-block::
+.. code-block:: bash
 
-    git clone https://github.com/RicterZ/nhentai
+    git clone <your-fork-url>
     cd nhentai
     pip install --no-cache-dir .
 
+Using uv (recommended):
+
+.. code-block:: bash
+
+    git clone <your-fork-url>
+    cd nhentai
+    uv venv
+    source venv/Scripts/activate  # On Windows Git Bash
+    # OR: venv\Scripts\activate.bat  # On Windows CMD
+    # OR: source venv/bin/activate   # On Linux/Mac
+    pip install -e .
+
 Build Docker container:
 
-.. code-block::
+.. code-block:: bash
 
-    git clone https://github.com/RicterZ/nhentai
+    git clone <your-fork-url>
     cd nhentai
     docker build -t nhentai:latest .
     docker run --rm -it -v ~/Downloads/doujinshi:/output -v ~/.nhentai/:/root/.nhentai nhentai --id 123855
-
-==================
-Installation
-==================
-From PyPI with pip:
-
-.. code-block::
-
-   pip install nhentai
-
-For a self-contained installation, use `pipx <https://github.com/pipxproject/pipx/>`_:
-
-.. code-block::
-
-   pipx install nhentai
-
-Pull from Dockerhub:
-
-.. code-block::
-
-    docker pull ricterz/nhentai
-    docker run --rm -it -v ~/Downloads/doujinshi:/output -v ~/.nhentai/:/root/.nhentai ricterz/nhentai --id 123855
-
-On Gentoo Linux:
-
-.. code-block::
-
-    layman -fa glibOne
-    sudo emerge net-misc/nhentai
-
-On NixOS:
-
-.. code-block::
-
-    nix-env -iA nixos.nhentai
     
 =====
 Usage
 =====
-**⚠️IMPORTANT⚠️**: To bypass the nhentai frequency limit, you should use `--cookie` and `--useragent` options to store your cookie and your user-agent.
+**⚠️IMPORTANT - CLOUDFLARE BYPASS⚠️**: This fork bypasses Cloudflare automatically, but you still need to set your cookies and user-agent for full functionality.
 
 .. code-block:: bash
 
     nhentai --useragent "USER AGENT of YOUR BROWSER"
-    nhentai --cookie "YOUR COOKIE FROM nhentai.net"
+    nhentai --cookie "YOUR COMPLETE COOKIE STRING FROM nhentai.net"
 
-**NOTE:**
+**COOKIE REQUIREMENTS:**
 
-- The format of the cookie is `"csrftoken=TOKEN; sessionid=ID; cf_clearance=CLOUDFLARE"`
-- `cf_clearance` cookie and useragent must be set if you encounter "blocked by cloudflare captcha" error. Make sure you use the same IP and useragent as when you got it
+- **For basic downloads and search**: Only ``cf_clearance`` and ``useragent`` are needed
+- **For accessing favorites**: You need ALL cookies: ``cf_clearance``, ``sessionid``, ``csrftoken``, and ``session-affinity``
 
-| To get csrftoken and sessionid, first login to your nhentai account in web browser, then:
-| (Chrome) |ve| |ld| More tools    |ld| Developer tools     |ld| Application |ld| Storage |ld| Cookies |ld| https://nhentai.net
-| (Firefox) |hv| |ld| Web Developer |ld| Web Developer Tools                  |ld| Storage |ld| Cookies |ld| https://nhentai.net
-| 
+The complete cookie format is:
+
+.. code-block::
+
+    "cf_clearance=VALUE; sessionid=VALUE; csrftoken=VALUE; session-affinity=VALUE"
+
+**How to get ALL cookies:**
+
+1. Login to nhentai.net in your browser
+2. Open Developer Tools (F12)
+3. Go to Network tab
+4. Refresh the page (F5)
+5. Click on any request to nhentai.net
+6. Find the **Cookie** header in Request Headers
+7. Copy the ENTIRE cookie value
+8. Set it with: ``nhentai --cookie "PASTE_HERE"``
+
+**Quick access by browser:**
+
+| (Chrome) |ve| |ld| More tools    |ld| Developer tools     |ld| Network tab |ld| Select request |ld| Headers |ld| Request Headers |ld| Cookie
+| (Firefox) |hv| |ld| Web Developer |ld| Web Developer Tools |ld| Network tab |ld| Select request |ld| Headers |ld| Request Headers |ld| Cookie
+|
+
+See ``COOKIE_GUIDE.md`` for detailed instructions.
+
 
 .. |hv| unicode:: U+2630 .. https://www.compart.com/en/unicode/U+2630
 .. |ve| unicode:: U+22EE .. https://www.compart.com/en/unicode/U+22EE

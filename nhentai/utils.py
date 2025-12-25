@@ -70,10 +70,42 @@ def check_cookie():
         logger.error('Blocked by Cloudflare captcha, please set your cookie and useragent')
         sys.exit(1)
 
+    # Debug: Check what we're getting
+    if os.getenv('DEBUG'):
+        logger.debug(f'Response status: {response.status_code}')
+        logger.debug(f'Response length: {len(response.text)}')
+        # Save response for debugging
+        with open('cookie_response_debug.html', 'w', encoding='utf-8') as f:
+            f.write(response.text[:10000])
+        logger.debug('Saved first 10000 chars of response to cookie_response_debug.html')
+
+    # Try original pattern
     username = re.findall('"/users/[0-9]+/(.*?)"', response.text)
+
+    # Try alternative patterns if original fails
     if not username:
-        logger.warning(
-            'Cannot get your username, please check your cookie or use `nhentai --cookie` to set your cookie')
+        # Try pattern without quotes
+        username = re.findall('/users/[0-9]+/([^/"\']+)', response.text)
+
+    if not username:
+        # Try data-username attribute
+        username = re.findall(r'data-username="([^"]+)"', response.text)
+
+    if not username:
+        # Check authentication status
+        if 'class="unauthenticated"' in response.text or 'unauthenticated' in response.text[:500]:
+            logger.warning(
+                'Cloudflare bypass successful, but not logged in.')
+            logger.warning(
+                'To access favorites, you need full session cookies (sessionid, csrftoken, etc.).')
+            logger.warning(
+                'Tip: Copy ALL cookies from your browser after logging in, not just cf_clearance.')
+        elif 'id="login"' in response.text or '/login/' in response.text:
+            logger.warning(
+                'Not logged in. For favorites, copy ALL cookies from browser after logging in.')
+        else:
+            logger.warning(
+                'Cannot verify login status. Downloads and search should still work.')
     else:
         logger.log(16, f'Login successfully! Your username: {username[0]}')
 
