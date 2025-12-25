@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "Bash(uv venv:*)",
+      "Bash(source venv/Scripts/activate)",
+      "Bash(pip install:*)"
+    ]
+  }
+}
