@@ -41,11 +41,13 @@ class Downloader(Singleton):
         self.delay = delay
         self.exit_on_fail = exit_on_fail
         self.folder = None
-        self.semaphore = asyncio.Semaphore(threads)
+        self.semaphore = None  # Will be initialized in async context
         self.no_filename_padding = no_filename_padding
 
     async def fiber(self, tasks):
-        # Semaphore now initialized in __init__
+        # Initialize semaphore in async context to use the current event loop
+        if self.semaphore is None:
+            self.semaphore = asyncio.Semaphore(self.threads)
 
         with Progress(
             TextColumn("[progress.description]{task.description}"),
@@ -197,7 +199,7 @@ class Downloader(Singleton):
 class CompressedDownloader(Downloader):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.zip_lock = asyncio.Lock()
+        self.zip_lock = None  # Will be initialized in async context
 
     def create_storage_object(self, folder):
         filename = f'{folder}.zip'
@@ -209,6 +211,10 @@ class CompressedDownloader(Downloader):
         if response is None:
             logger.error('Error: Response is None')
             return False
+
+        # Initialize lock in async context if needed
+        if self.zip_lock is None:
+            self.zip_lock = asyncio.Lock()
 
         image_data = io.BytesIO()
         length = response.headers.get('content-length')
