@@ -66,9 +66,8 @@ class ColorizingStreamHandler(logging.StreamHandler):
             raise
         except IOError:
             pass
-        except:
+        except Exception:
             self.handleError(record)
-
 
     if not platform.system() == 'Windows':
         def output_colorized(self, message):
@@ -96,7 +95,7 @@ class ColorizingStreamHandler(logging.StreamHandler):
             if fd is not None:
                 fd = fd()
 
-                if fd in (1, 2): # stdout or stderr
+                if fd in (1, 2):  # stdout or stderr
                     h = ctypes.windll.kernel32.GetStdHandle(-10 - fd)
 
             while parts:
@@ -121,11 +120,11 @@ class ColorizingStreamHandler(logging.StreamHandler):
                             elif 30 <= p <= 37:
                                 color |= self.nt_color_map[p - 30]
                             elif p == 1:
-                                color |= 0x08 # foreground intensity on
-                            elif p == 0: # reset to default color
+                                color |= 0x08  # foreground intensity on
+                            elif p == 0:  # reset to default color
                                 color = 0x07
                             else:
-                                pass # error condition ignored
+                                pass  # error condition ignored
 
                         ctypes.windll.kernel32.SetConsoleTextAttribute(h, color)
 

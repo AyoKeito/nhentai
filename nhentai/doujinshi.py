@@ -86,7 +86,7 @@ class Doujinshi(object):
         abs_base = os.path.abspath(base_path)
         expected_prefix = os.path.abspath(self.downloader.path)
         if not abs_base.startswith(expected_prefix + os.sep) and abs_base != expected_prefix:
-            logger.error(f'Invalid filename detected: path traversal attempt blocked')
+            logger.error('Invalid filename detected: path traversal attempt blocked')
             logger.error(f'Expected: {expected_prefix}, Got: {abs_base}')
             return False
 

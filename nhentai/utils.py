@@ -24,6 +24,7 @@ warnings.filterwarnings('ignore', message='.*https over https proxy.*', category
 MAX_FIELD_LENGTH = 100
 EXTENSIONS = ('.png', '.jpg', '.jpeg', '.gif', '.webp')
 
+
 def get_headers():
     headers = {
         'Referer': constant.LOGIN_URL
@@ -39,6 +40,7 @@ def get_headers():
 
     return headers
 
+
 def request(method, url, **kwargs):
     session = requests.Session(impersonate="chrome110")
     session.headers.update(get_headers())
@@ -52,8 +54,8 @@ def request(method, url, **kwargs):
     return getattr(session, method)(url, verify=False, **kwargs)
 
 
-async def async_request(method, url, proxy = None, **kwargs):
-    headers=get_headers()
+async def async_request(method, url, proxy=None, **kwargs):
+    headers = get_headers()
 
     if proxy is None:
         proxy = constant.CONFIG['proxy']

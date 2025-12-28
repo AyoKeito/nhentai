@@ -120,7 +120,7 @@ def merge_json():
                 json_dict = json.load(json_file)
                 json_dict['Folder'] = folder
                 lst.append(json_dict)
-        except (IOError, json.JSONDecodeError) as e:
+        except (IOError, json.JSONDecodeError):
             # Silently skip if file can't be read
             continue
     return lst
@@ -159,4 +159,3 @@ def set_js_database():
         indexed_json = json.dumps(indexed_json, separators=(',', ':'))
         f.write('var data = ' + indexed_json)
         f.write(';\nvar tags = ' + unique_json)
-

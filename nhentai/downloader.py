@@ -9,13 +9,14 @@ import io
 import aiofiles
 
 from urllib.parse import urlparse
-from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn, DownloadColumn, TransferSpeedColumn
+from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn
 from nhentai import constant
 from nhentai.logger import logger
 from nhentai.utils import Singleton, async_request
 
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 
 def download_callback(result):
     result, data = result
@@ -120,7 +121,7 @@ class Downloader(Singleton):
             logger.info('Download interrupted by user')
             return -4, url
 
-        except (httpx.HTTPStatusError, httpx.TimeoutException, httpx.ConnectError) as e:
+        except (httpx.HTTPStatusError, httpx.TimeoutException, httpx.ConnectError):
             if retried < constant.RETRY_TIMES:
                 # Silently retry - progress bar shows overall status
                 return await self.download(
@@ -159,14 +160,14 @@ class Downloader(Singleton):
                         await f.write(chunk)
         return True
 
-    def create_storage_object(self, folder:str):
+    def create_storage_object(self, folder: str):
         if not os.path.exists(folder):
             try:
                 os.makedirs(folder)
             except EnvironmentError as e:
                 logger.critical(str(e))
-        self.folder:str = folder
-        self.close = lambda: None # Only available in class CompressedDownloader
+        self.folder: str = folder
+        self.close = lambda: None  # Only available in class CompressedDownloader
 
     def start_download(self, queue, folder='') -> bool:
         if not isinstance(folder, (str,)):
@@ -196,6 +197,7 @@ class Downloader(Singleton):
 
         return True
 
+
 class CompressedDownloader(Downloader):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -204,7 +206,7 @@ class CompressedDownloader(Downloader):
     def create_storage_object(self, folder):
         filename = f'{folder}.zip'
         logger.debug(f'Creating ZIP file: {filename}')
-        self.zipfile = zipfile.ZipFile(filename,'w')
+        self.zipfile = zipfile.ZipFile(filename, 'w')
         self.close = lambda: self.zipfile.close()
 
     async def save(self, filename, response) -> bool:

@@ -11,7 +11,6 @@ from argparse import ArgumentParser
 from nhentai import __version__
 from nhentai.utils import generate_html, generate_main_html, DB, EXTENSIONS
 from nhentai.logger import logger
-from nhentai.constant import PATH_SEPARATOR
 
 
 def banner():

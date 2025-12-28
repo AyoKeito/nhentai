@@ -22,6 +22,7 @@ class TestParser(unittest.TestCase):
         result = doujinshi_parser(123456)
         self.assertTrue(result['pages'] == 84)
 
+    @unittest.skipUnless(os.getenv('NHENTAI_COOKIE'), 'Requires NHENTAI_COOKIE environment variable')
     def test_favorites_parser(self):
         result = favorites_parser(page=[1])
         self.assertTrue(len(result) > 0)

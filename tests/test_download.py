@@ -12,9 +12,11 @@ from nhentai.utils import generate_html
 
 did = 440546
 
+
 def has_jepg_file(path):
     with zipfile.ZipFile(path, 'r') as zf:
         return '01.jpg' in zf.namelist()
+
 
 def is_zip_file(path):
     try:
@@ -22,6 +24,7 @@ def is_zip_file(path):
             return True
     except (zipfile.BadZipFile, FileNotFoundError):
         return False
+
 
 class TestDownload(unittest.TestCase):
     def setUp(self) -> None:
@@ -51,6 +54,7 @@ class TestDownload(unittest.TestCase):
         self.assertTrue(os.path.exists(zipfile_path))
         self.assertTrue(is_zip_file(zipfile_path))
         self.assertTrue(has_jepg_file(zipfile_path))
+
 
 if __name__ == '__main__':
     unittest.main()
