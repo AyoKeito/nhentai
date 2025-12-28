@@ -4,7 +4,7 @@ nhentai
 あなたも変態。 いいね?
 
 |travis|
-|pypi|
+[![Python package](https://github.com/AyoKeito/nhentai/actions/workflows/python-package.yml/badge.svg)](https://github.com/AyoKeito/nhentai/actions/workflows/python-package.yml)
 |version|
 |license|
 
