@@ -125,7 +125,7 @@ def favorites_parser(page=None):
                     result.extend(temp_result)
                     break
 
-            except (httpx.HTTPError, Exception) as e:
+            except Exception as e:
                 if isinstance(e, (KeyboardInterrupt, SystemExit)):
                     raise
                 logger.warning(f'Error: {e}, retrying ({i} times) ...')

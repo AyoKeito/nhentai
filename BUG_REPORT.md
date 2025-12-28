@@ -2,7 +2,7 @@
 
 **Generated:** 2025-12-25
 **Codebase Version:** v0.6.2
-**Fixed in Version:** v0.6.3 + Additional Path Traversal Hardening
+**Fixed in Version:** v0.6.4 + Additional Path Traversal Hardening
 **Analysis Scope:** Complete codebase security, error handling, and concurrency review
 **Status:** ✅ ALL 24 CRITICAL/HIGH/MEDIUM BUGS FIXED (Including Additional Path Traversal Fixes)
 
