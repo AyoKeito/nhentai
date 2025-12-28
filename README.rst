@@ -3,9 +3,6 @@ nhentai
 
 あなたも変態。 いいね?
 
-|travis|
-|pypi|
-|version|
 |license|
 
 **🔧 FIXED FORK - CLOUDFLARE BYPASS**
@@ -13,9 +10,13 @@ nhentai
 This is a fixed fork of the original nhentai CLI tool with Cloudflare bypass functionality.
 
 **Key Changes:**
+
 - ✅ Bypasses Cloudflare protection using curl_cffi
+
 - ✅ Works with current nhentai.net anti-bot measures
+
 - ✅ Full authentication support with proper cookies
+
 - ✅ All features functional (download, search, favorites)
 
 **Note:** This fork must be installed from source - it is not available on PyPI.
@@ -23,8 +24,6 @@ This is a fixed fork of the original nhentai CLI tool with Cloudflare bypass fun
 nhentai is a CLI tool for downloading doujinshi from `nhentai.net <https://nhentai.net>`_
 
 Original repository: `https://github.com/RicterZ/nhentai <https://github.com/RicterZ/nhentai>`_
-
-GUI version: `https://github.com/edgar1016/nhentai-GUI <https://github.com/edgar1016/nhentai-GUI>`_
 
 ============
 Installation
