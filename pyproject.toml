@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nhentai"
-version = "0.6.2"
+version = "0.6.3"
 description = "nhentai doujinshi downloader"
 authors = ["Ricter Z <ricterzheng@gmail.com>"]
 license = "MIT"
@@ -20,6 +20,7 @@ httpx = "^0.28.1"
 curl-cffi = "^0.7.0"
 rich = "^13.0.0"
 chardet = "^5.2.0"
+aiofiles = "^24.1.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

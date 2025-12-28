@@ -6,6 +6,7 @@ import httpx
 import urllib3.exceptions
 import zipfile
 import io
+import aiofiles
 
 from urllib.parse import urlparse
 from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn, DownloadColumn, TransferSpeedColumn
@@ -40,11 +41,13 @@ class Downloader(Singleton):
         self.delay = delay
         self.exit_on_fail = exit_on_fail
         self.folder = None
-        self.semaphore = None
+        self.semaphore = None  # Will be initialized in async context
         self.no_filename_padding = no_filename_padding
 
     async def fiber(self, tasks):
-        self.semaphore = asyncio.Semaphore(self.threads)
+        # Initialize semaphore in async context to use the current event loop
+        if self.semaphore is None:
+            self.semaphore = asyncio.Semaphore(self.threads)
 
         with Progress(
             TextColumn("[progress.description]{task.description}"),
@@ -96,13 +99,26 @@ class Downloader(Singleton):
                 for mirror in constant.IMAGE_URL_MIRRORS:
                     # Silently try mirrors - progress bar shows overall status
                     mirror_url = f'{mirror}{path}'
-                    response = await async_request('GET', mirror_url, timeout=self.timeout, proxies=proxy)
+                    response = await async_request('GET', mirror_url, timeout=self.timeout, proxy=proxy)
                     if response.status_code == 200:
                         break
+                else:
+                    # If loop completes without break, all mirrors failed
+                    logger.error(f'All mirrors failed for {filename}')
+                    return -1, url
+
+            # Validate response before saving
+            if response.status_code != 200:
+                logger.error(f'Failed to download {filename}: HTTP {response.status_code}')
+                return -1, url
 
             if not await self.save(filename, response):
-                logger.error(f'Can not download image {url}')
-                return -1, url
+                logger.error(f'Failed to save {filename}')
+                return -2, url
+
+        except KeyboardInterrupt:
+            logger.info('Download interrupted by user')
+            return -4, url
 
         except (httpx.HTTPStatusError, httpx.TimeoutException, httpx.ConnectError) as e:
             if retried < constant.RETRY_TIMES:
@@ -120,15 +136,11 @@ class Downloader(Singleton):
                 return -2, url
 
         except Exception as e:
-            import traceback
-
-            logger.error(f"Exception type: {type(e)}")
-            traceback.print_stack()
-            logger.critical(str(e))
+            logger.error(f"Unexpected error: {type(e).__name__}: {e}")
+            if os.getenv('DEBUG'):
+                import traceback
+                logger.debug(traceback.format_exc())
             return -9, url
-
-        except KeyboardInterrupt:
-            return -4, url
 
         return 1, url
 
@@ -137,14 +149,14 @@ class Downloader(Singleton):
             logger.error('Error: Response is None')
             return False
         save_file_path = os.path.join(self.folder, filename)
-        with open(save_file_path, 'wb') as f:
+        async with aiofiles.open(save_file_path, 'wb') as f:
             if response is not None:
                 length = response.headers.get('content-length')
                 if length is None:
-                    f.write(response.content)
+                    await f.write(response.content)
                 else:
                     async for chunk in response.aiter_bytes(2048):
-                        f.write(chunk)
+                        await f.write(chunk)
         return True
 
     def create_storage_object(self, folder:str):
@@ -185,9 +197,13 @@ class Downloader(Singleton):
         return True
 
 class CompressedDownloader(Downloader):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.zip_lock = None  # Will be initialized in async context
+
     def create_storage_object(self, folder):
         filename = f'{folder}.zip'
-        print(filename)
+        logger.debug(f'Creating ZIP file: {filename}')
         self.zipfile = zipfile.ZipFile(filename,'w')
         self.close = lambda: self.zipfile.close()
 
@@ -195,6 +211,10 @@ class CompressedDownloader(Downloader):
         if response is None:
             logger.error('Error: Response is None')
             return False
+
+        # Initialize lock in async context if needed
+        if self.zip_lock is None:
+            self.zip_lock = asyncio.Lock()
 
         image_data = io.BytesIO()
         length = response.headers.get('content-length')
@@ -206,5 +226,9 @@ class CompressedDownloader(Downloader):
                 image_data.write(chunk)
 
         image_data.seek(0)
-        self.zipfile.writestr(filename, image_data.read())
+
+        # Acquire lock before writing to zipfile to prevent race conditions
+        async with self.zip_lock:
+            self.zipfile.writestr(filename, image_data.read())
+
         return True

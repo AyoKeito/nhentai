@@ -94,17 +94,33 @@ def main():
                                 exit_on_fail=options.exit_on_fail,
                                 no_filename_padding=options.no_filename_padding)
 
+        failed_downloads = []
+
         for doujinshi_id in doujinshi_ids:
             doujinshi_info = doujinshi_parser(doujinshi_id)
-            if doujinshi_info:
-                doujinshi = Doujinshi(name_format=options.name_format, **doujinshi_info)
-            else:
+            if not doujinshi_info:
+                logger.error(f'Failed to get info for doujinshi {doujinshi_id}')
+                failed_downloads.append(doujinshi_id)
                 continue
 
+            doujinshi = Doujinshi(name_format=options.name_format, **doujinshi_info)
             doujinshi.downloader = downloader
 
             if doujinshi.check_if_need_download(options):
-                doujinshi.download()
+                try:
+                    result = doujinshi.download()
+                    if result is False or (isinstance(result, int) and result < 0):
+                        logger.error(f'Download failed for {doujinshi.name}')
+                        failed_downloads.append(doujinshi_id)
+                        if options.exit_on_fail:
+                            sys.exit(1)
+                        continue
+                except Exception as e:
+                    logger.error(f'Exception during download: {e}')
+                    failed_downloads.append(doujinshi_id)
+                    if options.exit_on_fail:
+                        sys.exit(1)
+                    continue
             else:
                 logger.info(f'Skip download doujinshi because a PDF/CBZ file exists of doujinshi {doujinshi.name}')
 
@@ -138,6 +154,10 @@ def main():
 
         if options.main_viewer:
             generate_main_html(options.output_dir)
+
+        # Print summary of failed downloads
+        if failed_downloads:
+            logger.error(f'Failed to download {len(failed_downloads)} doujinshi: {failed_downloads}')
 
         if not platform.system() == 'Windows':
             logger.log(16, '🍻 All done.')
