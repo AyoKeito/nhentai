@@ -3,7 +3,7 @@ nhentai
 
 あなたも変態。 いいね?
 
-|license|
+|license| |python|
 
 **🔧 FIXED FORK - CLOUDFLARE BYPASS**
 
@@ -283,3 +283,6 @@ Set `NHENTAI` env var to your nhentai mirror.
 
 .. |license| image:: https://img.shields.io/github/license/ricterz/nhentai.svg
    :target: https://github.com/RicterZ/nhentai/blob/master/LICENSE
+
+.. |python| image:: https://img.shields.io/badge/python-3.9+-blue.svg
+   :target: https://www.python.org/downloads/
