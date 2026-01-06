@@ -179,6 +179,11 @@ class Downloader(Singleton):
         logger.log(16, f'Saving to: {folder}')
         self.create_storage_object(folder)
 
+        # Fix for incomplete downloads
+        self.semaphore = None
+        if hasattr(self, 'zip_lock'):
+            self.zip_lock = None
+
         if os.getenv('DEBUG', None) == 'NODOWNLOAD':
             # Assuming we want to continue with rest of process.
             return True
