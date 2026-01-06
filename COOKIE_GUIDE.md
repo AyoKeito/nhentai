@@ -26,11 +26,11 @@ This is the most reliable method because it shows all cookies directly.
    - `session-affinity` (load balancer session)
 7. **Manually copy each Value** and format as:
    ```
-   cf_clearance=VALUE1; sessionid=VALUE2; csrftoken=VALUE3; session-affinity=VALUE4
+   cf_clearance=VALUE1;sessionid=VALUE2;csrftoken=VALUE3;session-affinity=VALUE4
    ```
 8. **Set the complete cookie string**:
    ```bash
-   nhentai --cookie "cf_clearance=VALUE1; sessionid=VALUE2; csrftoken=VALUE3; session-affinity=VALUE4"
+   nhentai --cookie="cf_clearance=VALUE1;sessionid=VALUE2;csrftoken=VALUE3;session-affinity=VALUE4"
    ```
 
 ### Chrome:
@@ -61,7 +61,7 @@ Image requests (to `t4.nhentai.net`, `i1.nhentai.net`, etc.) only include `cf_cl
 6. **Scroll to Request Headers**
 7. **Find the Cookie header** - it should show ALL cookies
 8. **Copy the ENTIRE value**
-9. Use that value with `nhentai --cookie "..."`
+9. Use that value with `nhentai --cookie="..."`
 
 ## Testing Your Cookies
 
