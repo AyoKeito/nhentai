@@ -39,7 +39,8 @@ From Github:
     cd nhentai
     pip install --no-cache-dir .
 
-Using uv (recommended):
+Using `uv <https://github.com/astral-sh/uv>`_ (recommended):
+
 
 .. code-block:: bash
 
