@@ -103,7 +103,7 @@ DEBUG=NODOWNLOAD nhentai --id 123855
 ### Key Patterns
 
 **Authentication**: Cookie and user-agent must be set to bypass Cloudflare:
-- Set once: `nhentai --cookie "..." --useragent "..."`
+- Set once: `nhentai --cookie="..." --useragent="..."`
 - Stored in config.json and reused automatically
 - Required for favorites and to avoid rate limiting
 
