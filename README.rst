@@ -67,8 +67,8 @@ Usage
 
 .. code-block:: bash
 
-    nhentai --useragent "USER AGENT of YOUR BROWSER"
-    nhentai --cookie "YOUR COMPLETE COOKIE STRING FROM nhentai.net"
+    nhentai --useragent="USER AGENT of YOUR BROWSER"
+    nhentai --cookie="YOUR COMPLETE COOKIE STRING FROM nhentai.net"
 
 **COOKIE REQUIREMENTS:**
 
@@ -79,7 +79,7 @@ The complete cookie format is:
 
 .. code-block::
 
-    "cf_clearance=VALUE; sessionid=VALUE; csrftoken=VALUE; session-affinity=VALUE"
+    "cf_clearance=VALUE;sessionid=VALUE;csrftoken=VALUE;session-affinity=VALUE"
 
 **How to get ALL cookies:**
 
@@ -92,8 +92,8 @@ The complete cookie format is:
    - **Firefox**: Storage tab → Cookies → https://nhentai.net
    - **Chrome**: Application tab → Storage → Cookies → https://nhentai.net
 
-4. Copy ALL cookie values and format as: ``"cf_clearance=VALUE; sessionid=VALUE; csrftoken=VALUE; session-affinity=VALUE"``
-5. Set it with: ``nhentai --cookie "YOUR_COOKIES_HERE"``
+4. Copy ALL cookie values and format as: ``"cf_clearance=VALUE;sessionid=VALUE;csrftoken=VALUE;session-affinity=VALUE"``
+5. Set it with: ``nhentai --cookie="YOUR_COOKIES_HERE"``
 
 **Method 2: Network Tab (Alternative)**
 
