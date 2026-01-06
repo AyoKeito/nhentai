@@ -50,7 +50,7 @@ Using `uv <https://github.com/astral-sh/uv>`_ (recommended):
     source venv/Scripts/activate  # On Windows Git Bash
     # OR: venv\Scripts\activate.bat  # On Windows CMD
     # OR: source venv/bin/activate   # On Linux/Mac
-    pip install -e .
+    uv pip install -e .
 
 Build Docker container:
 
