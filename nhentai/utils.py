@@ -134,9 +134,25 @@ class Singleton(_Singleton(str('SingletonMeta'), (object,), {})):
 
 def readfile(path):
     loc = os.path.dirname(__file__)
+    base_dir = os.path.abspath(loc)
+    full_path = os.path.abspath(os.path.join(base_dir, path))
+    if os.path.commonpath([base_dir, full_path]) != base_dir:
+        raise ValueError(f'Invalid template path "{path}"')
 
-    with open(os.path.join(loc, path), 'r') as file:
+    with open(full_path, 'r') as file:
         return file.read()
+
+
+def validate_template_name(template: str) -> str:
+    if not template:
+        raise ValueError('Template name cannot be empty')
+    if os.path.basename(template) != template:
+        raise ValueError(f'Invalid template name "{template}"')
+    if '..' in template:
+        raise ValueError(f'Invalid template name "{template}"')
+    if os.path.sep in template or (os.path.altsep and os.path.altsep in template):
+        raise ValueError(f'Invalid template name "{template}"')
+    return template
 
 
 def parse_doujinshi_obj(
@@ -170,6 +186,12 @@ def generate_html(output_dir='.', doujinshi_obj=None, template='default'):
     doujinshi_dir, filename = parse_doujinshi_obj(output_dir, doujinshi_obj, 'html')
     image_html = ''
 
+    try:
+        template = validate_template_name(template)
+    except ValueError as exc:
+        logger.error(str(exc))
+        return
+
     if not os.path.exists(doujinshi_dir):
         logger.warning(f'Path "{doujinshi_dir}" does not exist, creating.')
         try:
@@ -185,9 +207,13 @@ def generate_html(output_dir='.', doujinshi_obj=None, template='default'):
             continue
         image_html += f'<img src="{image}" class="image-item"/>\n'
 
-    html = readfile(f'viewer/{template}/index.html')
-    css = readfile(f'viewer/{template}/styles.css')
-    js = readfile(f'viewer/{template}/scripts.js')
+    try:
+        html = readfile(f'viewer/{template}/index.html')
+        css = readfile(f'viewer/{template}/styles.css')
+        js = readfile(f'viewer/{template}/scripts.js')
+    except (OSError, ValueError) as exc:
+        logger.error(f'Unable to read template "{template}": {exc}')
+        return
 
     if doujinshi_obj is not None:
         # serialize_json(doujinshi_obj, doujinshi_dir)

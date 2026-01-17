@@ -67,6 +67,8 @@ class ColorizingStreamHandler(logging.StreamHandler):
         except IOError:
             pass
         except Exception:
+            if logging.raiseExceptions:
+                raise
             self.handleError(record)
 
     if not platform.system() == 'Windows':

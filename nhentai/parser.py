@@ -316,7 +316,11 @@ def search_parser(keyword, sorting, page, is_page_all=False):
     if is_page_all:
         url = request('get', url=constant.SEARCH_URL, params={'query': keyword}).url
         init_response = request('get', url.replace('%2B', '+')).json()
-        page = range(1, init_response['num_pages']+1)
+        num_pages = init_response.get('num_pages')
+        if not isinstance(num_pages, int):
+            logger.warning('Search response missing "num_pages"; defaulting to 1 page')
+            num_pages = 1
+        page = range(1, num_pages + 1)
 
     total = f'/{page[-1]}' if is_page_all else ''
     not_exists_persist = False
@@ -343,18 +347,35 @@ def search_parser(keyword, sorting, page, is_page_all=False):
         if constant.DEBUG:
             logger.debug(f'Response: {response}')
 
-        if response is None or 'result' not in response:
+        if not isinstance(response, dict):
+            logger.warning(f'Unexpected response format in page {p}')
+            if not_exists_persist is True:
+                break
+            continue
+
+        result_rows = response.get('result')
+        if not isinstance(result_rows, list):
             logger.warning(f'No result in response in page {p}')
             if not_exists_persist is True:
                 break
             continue
 
-        for row in response['result']:
-            title = row['title']['english']
+        for row in result_rows:
+            if not isinstance(row, dict):
+                logger.warning('Skipping malformed search result entry')
+                continue
+
+            title_info = row.get('title') if isinstance(row.get('title'), dict) else {}
+            title = title_info.get('english') or title_info.get('pretty') or title_info.get('japanese') or 'Untitled'
             title = title[:constant.CONFIG['max_filename']] + '..' if \
                 len(title) > constant.CONFIG['max_filename'] else title
 
-            result.append({'id': row['id'], 'title': title})
+            entry_id = row.get('id')
+            if entry_id is None:
+                logger.warning('Skipping search result with missing id')
+                continue
+
+            result.append({'id': entry_id, 'title': title})
 
         not_exists_persist = False
         if not result:
