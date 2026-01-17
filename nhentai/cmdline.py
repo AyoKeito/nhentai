@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 from argparse import ArgumentParser
 
 from nhentai import __version__
-from nhentai.utils import generate_html, generate_main_html, DB, EXTENSIONS
+from nhentai.utils import generate_html, generate_main_html, DB, EXTENSIONS, validate_template_name
 from nhentai.logger import logger
 
 
@@ -231,6 +231,12 @@ def cmd_parser():
     if args.viewer_template is not None:
         if not args.viewer_template:
             args.viewer_template = 'default'
+
+        try:
+            args.viewer_template = validate_template_name(args.viewer_template)
+        except ValueError as exc:
+            logger.error(str(exc))
+            sys.exit(1)
 
         if not os.path.exists(os.path.join(os.path.dirname(__file__),
                                            f'viewer/{args.viewer_template}/index.html')):
