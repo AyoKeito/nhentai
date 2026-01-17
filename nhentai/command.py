@@ -85,6 +85,19 @@ class DownloadStatus(Enum):
     FAILED = 'failed'
 
 
+def validate_options(options):
+    errors = []
+    if options.move_to_folder and options.rm_origin_dir:
+        errors.append('Cannot use --move-to-folder together with --rm-origin-dir.')
+    if options.zip and options.is_nohtml:
+        errors.append('Cannot use --zip together with --nohtml (zip already disables HTML).')
+
+    if errors:
+        for message in errors:
+            logger.error(message)
+        sys.exit(1)
+
+
 def download_one(doujinshi_id, options, downloader):
     doujinshi_info = doujinshi_parser(doujinshi_id)
     if not doujinshi_info:
@@ -156,9 +169,6 @@ def run_downloads(options, doujinshi_ids):
                 move_to_folder(options.output_dir, doujinshi, 'pdf')
 
         if options.rm_origin_dir:
-            if options.move_to_folder:
-                logger.critical('You specified both --move-to-folder and --rm-origin-dir options, '
-                                'you will not get anything :(')
             shutil.rmtree(os.path.join(options.output_dir, doujinshi.filename), ignore_errors=True)
 
     if options.main_viewer:
@@ -192,6 +202,7 @@ def main():
         sys.exit(1)
 
     options = cmd_parser()
+    validate_options(options)
     logger.info(f'Using mirror: {BASE_URL}')
 
     if options.retry:
