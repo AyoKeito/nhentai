@@ -17,16 +17,7 @@ from nhentai.utils import generate_html, generate_doc, generate_main_html, gener
     paging, check_cookie, signal_handler, DB, move_to_folder
 
 
-def main():
-    banner()
-
-    if sys.version_info < (3, 0, 0):
-        logger.error('nhentai now only support Python 3.x')
-        sys.exit(1)
-
-    options = cmd_parser()
-    logger.info(f'Using mirror: {BASE_URL}')
-
+def configure_runtime(options):
     # CONFIG['proxy'] will be changed after cmd_parser()
     if constant.CONFIG['proxy']:
         if isinstance(constant.CONFIG['proxy'], dict):
@@ -44,13 +35,12 @@ def main():
     # check your cookie
     check_cookie()
 
+
+def resolve_doujinshi_ids(options):
     doujinshis = []
     doujinshi_ids = []
 
     page_list = paging(options.page)
-
-    if options.retry:
-        constant.RETRY_TIMES = int(options.retry)
 
     if options.favorites:
         if not options.is_download:
@@ -85,93 +75,119 @@ def main():
         doujinshi_ids = list(set(map(int, doujinshi_ids)) - set(data))
         logger.info(f'New doujinshis account: {len(doujinshi_ids)}')
 
+    return doujinshi_ids
+
+
+def run_downloads(options, doujinshi_ids):
     if options.zip:
         options.is_nohtml = True
 
-    if not options.is_show:
-        downloader = (CompressedDownloader if options.zip else Downloader)(path=options.output_dir, threads=options.threads,
-                                timeout=options.timeout, delay=options.delay,
-                                exit_on_fail=options.exit_on_fail,
-                                no_filename_padding=options.no_filename_padding)
+    downloader = (CompressedDownloader if options.zip else Downloader)(path=options.output_dir, threads=options.threads,
+                            timeout=options.timeout, delay=options.delay,
+                            exit_on_fail=options.exit_on_fail,
+                            no_filename_padding=options.no_filename_padding)
 
-        failed_downloads = []
+    failed_downloads = []
 
-        for doujinshi_id in doujinshi_ids:
-            doujinshi_info = doujinshi_parser(doujinshi_id)
-            if not doujinshi_info:
-                logger.error(f'Failed to get info for doujinshi {doujinshi_id}')
-                failed_downloads.append(doujinshi_id)
-                continue
+    for doujinshi_id in doujinshi_ids:
+        doujinshi_info = doujinshi_parser(doujinshi_id)
+        if not doujinshi_info:
+            logger.error(f'Failed to get info for doujinshi {doujinshi_id}')
+            failed_downloads.append(doujinshi_id)
+            continue
 
-            doujinshi = Doujinshi(name_format=options.name_format, **doujinshi_info)
-            doujinshi.downloader = downloader
+        doujinshi = Doujinshi(name_format=options.name_format, **doujinshi_info)
+        doujinshi.downloader = downloader
 
-            if doujinshi.check_if_need_download(options):
-                try:
-                    result = doujinshi.download()
-                    if result is False or (isinstance(result, int) and result < 0):
-                        logger.error(f'Download failed for {doujinshi.name}')
-                        failed_downloads.append(doujinshi_id)
-                        if options.exit_on_fail:
-                            sys.exit(1)
-                        continue
-                except Exception as e:
-                    logger.error(f'Exception during download: {e}')
+        if doujinshi.check_if_need_download(options):
+            try:
+                result = doujinshi.download()
+                if result is False or (isinstance(result, int) and result < 0):
+                    logger.error(f'Download failed for {doujinshi.name}')
                     failed_downloads.append(doujinshi_id)
                     if options.exit_on_fail:
                         sys.exit(1)
                     continue
-            else:
-                logger.info(f'Skip download doujinshi because a PDF/CBZ file exists of doujinshi {doujinshi.name}')
-
-            if options.generate_metadata:
-                generate_metadata(options.output_dir, doujinshi)
-
-            if options.is_save_download_history:
-                with DB() as db:
-                    db.add_one(doujinshi.id)
-
-            if not options.is_nohtml:
-                generate_html(options.output_dir, doujinshi, template=constant.CONFIG['template'])
-
-            if options.is_cbz:
-                generate_doc('cbz', options.output_dir, doujinshi, options.regenerate)
-
-            if options.is_pdf:
-                generate_doc('pdf', options.output_dir, doujinshi, options.regenerate)
-
-            if options.move_to_folder:
-                if options.is_cbz:
-                    move_to_folder(options.output_dir, doujinshi, 'cbz')
-                if options.is_pdf:
-                    move_to_folder(options.output_dir, doujinshi, 'pdf')
-
-            if options.rm_origin_dir:
-                if options.move_to_folder:
-                    logger.critical('You specified both --move-to-folder and --rm-origin-dir options, '
-                                    'you will not get anything :(')
-                shutil.rmtree(os.path.join(options.output_dir, doujinshi.filename), ignore_errors=True)
-
-        if options.main_viewer:
-            generate_main_html(options.output_dir)
-
-        # Print summary of failed downloads
-        if failed_downloads:
-            logger.error(f'Failed to download {len(failed_downloads)} doujinshi: {failed_downloads}')
-
-        if not platform.system() == 'Windows':
-            logger.log(16, '🍻 All done.')
-        else:
-            logger.log(16, 'All done.')
-
-    else:
-        for doujinshi_id in doujinshi_ids:
-            doujinshi_info = doujinshi_parser(doujinshi_id)
-            if doujinshi_info:
-                doujinshi = Doujinshi(name_format=options.name_format, **doujinshi_info)
-            else:
+            except Exception as e:
+                logger.error(f'Exception during download: {e}')
+                failed_downloads.append(doujinshi_id)
+                if options.exit_on_fail:
+                    sys.exit(1)
                 continue
-            doujinshi.show()
+        else:
+            logger.info(f'Skip download doujinshi because a PDF/CBZ file exists of doujinshi {doujinshi.name}')
+
+        if options.generate_metadata:
+            generate_metadata(options.output_dir, doujinshi)
+
+        if options.is_save_download_history:
+            with DB() as db:
+                db.add_one(doujinshi.id)
+
+        if not options.is_nohtml:
+            generate_html(options.output_dir, doujinshi, template=constant.CONFIG['template'])
+
+        if options.is_cbz:
+            generate_doc('cbz', options.output_dir, doujinshi, options.regenerate)
+
+        if options.is_pdf:
+            generate_doc('pdf', options.output_dir, doujinshi, options.regenerate)
+
+        if options.move_to_folder:
+            if options.is_cbz:
+                move_to_folder(options.output_dir, doujinshi, 'cbz')
+            if options.is_pdf:
+                move_to_folder(options.output_dir, doujinshi, 'pdf')
+
+        if options.rm_origin_dir:
+            if options.move_to_folder:
+                logger.critical('You specified both --move-to-folder and --rm-origin-dir options, '
+                                'you will not get anything :(')
+            shutil.rmtree(os.path.join(options.output_dir, doujinshi.filename), ignore_errors=True)
+
+    if options.main_viewer:
+        generate_main_html(options.output_dir)
+
+    # Print summary of failed downloads
+    if failed_downloads:
+        logger.error(f'Failed to download {len(failed_downloads)} doujinshi: {failed_downloads}')
+
+    if not platform.system() == 'Windows':
+        logger.log(16, '🍻 All done.')
+    else:
+        logger.log(16, 'All done.')
+
+
+def show_doujinshi(options, doujinshi_ids):
+    for doujinshi_id in doujinshi_ids:
+        doujinshi_info = doujinshi_parser(doujinshi_id)
+        if doujinshi_info:
+            doujinshi = Doujinshi(name_format=options.name_format, **doujinshi_info)
+        else:
+            continue
+        doujinshi.show()
+
+
+def main():
+    banner()
+
+    if sys.version_info < (3, 0, 0):
+        logger.error('nhentai now only support Python 3.x')
+        sys.exit(1)
+
+    options = cmd_parser()
+    logger.info(f'Using mirror: {BASE_URL}')
+
+    if options.retry:
+        constant.RETRY_TIMES = int(options.retry)
+
+    configure_runtime(options)
+    doujinshi_ids = resolve_doujinshi_ids(options)
+
+    if options.is_show:
+        show_doujinshi(options, doujinshi_ids)
+    else:
+        run_downloads(options, doujinshi_ids)
 
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
