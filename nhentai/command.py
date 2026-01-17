@@ -5,6 +5,7 @@ import sys
 import signal
 import platform
 import urllib3.exceptions
+from enum import Enum
 
 from nhentai import constant
 from nhentai.cmdline import cmd_parser, banner, write_config
@@ -78,6 +79,38 @@ def resolve_doujinshi_ids(options):
     return doujinshi_ids
 
 
+class DownloadStatus(Enum):
+    SUCCESS = 'success'
+    SKIPPED = 'skipped'
+    FAILED = 'failed'
+
+
+def download_one(doujinshi_id, options, downloader):
+    doujinshi_info = doujinshi_parser(doujinshi_id)
+    if not doujinshi_info:
+        return DownloadStatus.FAILED, f'Failed to get info for doujinshi {doujinshi_id}', None
+
+    doujinshi = Doujinshi(name_format=options.name_format, **doujinshi_info)
+    doujinshi.downloader = downloader
+
+    if not doujinshi.check_if_need_download(options):
+        return (
+            DownloadStatus.SKIPPED,
+            f'Skip download doujinshi because a PDF/CBZ file exists of doujinshi {doujinshi.name}',
+            doujinshi,
+        )
+
+    try:
+        result = doujinshi.download()
+    except Exception as e:
+        return DownloadStatus.FAILED, f'Exception during download: {e}', doujinshi
+
+    if result is False or (isinstance(result, int) and result < 0):
+        return DownloadStatus.FAILED, f'Download failed for {doujinshi.name}', doujinshi
+
+    return DownloadStatus.SUCCESS, None, doujinshi
+
+
 def run_downloads(options, doujinshi_ids):
     if options.zip:
         options.is_nohtml = True
@@ -90,32 +123,15 @@ def run_downloads(options, doujinshi_ids):
     failed_downloads = []
 
     for doujinshi_id in doujinshi_ids:
-        doujinshi_info = doujinshi_parser(doujinshi_id)
-        if not doujinshi_info:
-            logger.error(f'Failed to get info for doujinshi {doujinshi_id}')
+        status, message, doujinshi = download_one(doujinshi_id, options, downloader)
+        if status is DownloadStatus.FAILED:
+            logger.error(message)
             failed_downloads.append(doujinshi_id)
+            if options.exit_on_fail:
+                sys.exit(1)
             continue
-
-        doujinshi = Doujinshi(name_format=options.name_format, **doujinshi_info)
-        doujinshi.downloader = downloader
-
-        if doujinshi.check_if_need_download(options):
-            try:
-                result = doujinshi.download()
-                if result is False or (isinstance(result, int) and result < 0):
-                    logger.error(f'Download failed for {doujinshi.name}')
-                    failed_downloads.append(doujinshi_id)
-                    if options.exit_on_fail:
-                        sys.exit(1)
-                    continue
-            except Exception as e:
-                logger.error(f'Exception during download: {e}')
-                failed_downloads.append(doujinshi_id)
-                if options.exit_on_fail:
-                    sys.exit(1)
-                continue
-        else:
-            logger.info(f'Skip download doujinshi because a PDF/CBZ file exists of doujinshi {doujinshi.name}')
+        if status is DownloadStatus.SKIPPED and message:
+            logger.info(message)
 
         if options.generate_metadata:
             generate_metadata(options.output_dir, doujinshi)
