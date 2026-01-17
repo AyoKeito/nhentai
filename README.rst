@@ -7,8 +7,10 @@ nhentai
 
 **🔧 FIXED FORK - CLOUDFLARE BYPASS**
 
-This is a fixed fork of the original nhentai CLI tool with Cloudflare bypass functionality.
-Master branch is under active development. If you're looking for semi-stable releases, refer to releases section.
+This is a fixed fork of the original nhentai CLI tool with Cloudflare bypass functionality.  
+
+Master branch is under active development. If you're looking for semi-stable releases, refer to releases section.  
+
 If something doesn't work, make an issue.
 
 **Key Changes:**
