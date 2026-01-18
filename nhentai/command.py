@@ -221,4 +221,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 signal.signal(signal.SIGINT, signal_handler)
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.exit(1)

@@ -2,7 +2,7 @@
 name = "nhentai"
 version = "0.7.1"
 description = "nhentai doujinshi downloader"
-authors = ["Ricter Z <ricterzheng@gmail.com>"]
+authors = ["Ricter Z <ricterzheng@gmail.com>", "AyoKeito"]
 license = "MIT"
 readme = "README.rst"
 include = ["nhentai/viewer/**"]

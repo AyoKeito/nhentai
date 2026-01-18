@@ -39,7 +39,7 @@ From Github:
 
 .. code-block:: bash
 
-    git clone https://github.com/AyoKeito/nhentai
+    git clone https://github.com/RicterZ/nhentai
     cd nhentai
     pip install --no-cache-dir .
 
@@ -48,7 +48,7 @@ Using `uv <https://github.com/astral-sh/uv>`_ (recommended):
 
 .. code-block:: bash
 
-    git clone https://github.com/AyoKeito/nhentai
+    git clone https://github.com/RicterZ/nhentai
     cd nhentai
     uv venv
     source venv/Scripts/activate  # On Windows Git Bash
@@ -60,7 +60,7 @@ Build Docker container:
 
 .. code-block:: bash
 
-    git clone https://github.com/AyoKeito/nhentai
+    git clone https://github.com/RicterZ/nhentai
     cd nhentai
     docker build -t nhentai:latest .
     docker run --rm -it -v ~/Downloads/doujinshi:/output -v ~/.nhentai/:/root/.nhentai nhentai --id 123855

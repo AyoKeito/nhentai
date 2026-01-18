@@ -41,7 +41,13 @@ def get_headers():
     return headers
 
 
+def raise_if_stop_requested():
+    if constant.STOP_REQUESTED:
+        raise KeyboardInterrupt
+
+
 def request(method, url, **kwargs):
+    raise_if_stop_requested()
     session = requests.Session(impersonate="chrome110")
     session.headers.update(get_headers())
 
@@ -51,10 +57,19 @@ def request(method, url, **kwargs):
             'http': constant.CONFIG['proxy'],
         }
 
-    return getattr(session, method)(url, verify=False, **kwargs)
+    try:
+        response = getattr(session, method)(url, verify=False, **kwargs)
+    except Exception:
+        if constant.STOP_REQUESTED:
+            raise KeyboardInterrupt
+        raise
+
+    raise_if_stop_requested()
+    return response
 
 
 async def async_request(method, url, proxy=None, **kwargs):
+    raise_if_stop_requested()
     headers = get_headers()
 
     if proxy is None:
@@ -68,6 +83,7 @@ async def async_request(method, url, proxy=None, **kwargs):
         # Consume response body before client closes to prevent connection errors
         await response.aread()
 
+    raise_if_stop_requested()
     return response
 
 
@@ -426,7 +442,7 @@ def format_filename(s, length=MAX_FIELD_LENGTH, _truncate_only=False):
 
 def signal_handler(_signal, _frame):
     logger.error('Ctrl-C signal received. Stopping...')
-    sys.exit(1)
+    constant.STOP_REQUESTED = True
 
 
 def paging(page_string):

@@ -50,6 +50,7 @@ class Downloader(Singleton):
         if self.semaphore is None:
             self.semaphore = asyncio.Semaphore(self.threads)
 
+        download_tasks = [asyncio.create_task(task) for task in tasks]
         with Progress(
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
@@ -59,9 +60,14 @@ class Downloader(Singleton):
             TextColumn("pages"),
             TimeRemainingColumn(),
         ) as progress:
-            download_task = progress.add_task("[green]Downloading", total=len(tasks))
+            download_task = progress.add_task("[green]Downloading", total=len(download_tasks))
 
-            for completed_task in asyncio.as_completed(tasks):
+            for completed_task in asyncio.as_completed(download_tasks):
+                if constant.STOP_REQUESTED:
+                    for task in download_tasks:
+                        if not task.done():
+                            task.cancel()
+                    raise KeyboardInterrupt
                 try:
                     result = await completed_task
                     if result[0] > 0:
@@ -69,6 +75,11 @@ class Downloader(Singleton):
                     else:
                         progress.update(download_task, advance=1)
                         raise Exception(f'{result[1]} download failed, return value {result[0]}')
+                except KeyboardInterrupt:
+                    for task in download_tasks:
+                        if not task.done():
+                            task.cancel()
+                    raise
                 except Exception as e:
                     # Log errors using logger, rich will handle the display
                     progress.console.print(f'[red]Error:[/red] {e}')
@@ -119,6 +130,8 @@ class Downloader(Singleton):
 
         except KeyboardInterrupt:
             logger.info('Download interrupted by user')
+            if constant.STOP_REQUESTED:
+                raise
             return -4, url
 
         except (httpx.HTTPStatusError, httpx.TimeoutException, httpx.ConnectError):
