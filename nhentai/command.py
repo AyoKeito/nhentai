@@ -126,7 +126,8 @@ def run_downloads(options, doujinshi_ids):
     downloader = (CompressedDownloader if options.zip else Downloader)(path=options.output_dir, threads=options.threads,
                             timeout=options.timeout, delay=options.delay,
                             exit_on_fail=options.exit_on_fail,
-                            no_filename_padding=options.no_filename_padding)
+                            no_filename_padding=options.no_filename_padding,
+                            webp=options.webp)
 
     failed_downloads = []
 
