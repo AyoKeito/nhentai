@@ -11,11 +11,102 @@ import aiofiles
 from urllib.parse import urlparse
 from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn
 from nhentai import constant
-from nhentai.logger import logger
+from nhentai.logger import logger, console
 from nhentai.utils import Singleton, async_request
 
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+JPEG_SIGNATURE = b"\xff\xd8\xff"
+RIFF_SIGNATURE = b"RIFF"
+WEBP_SIGNATURE = b"WEBP"
+
+CONTENT_TYPE_TO_FORMAT = {
+    "image/png": "png",
+    "image/jpeg": "jpeg",
+    "image/jpg": "jpeg",
+    "image/webp": "webp",
+    "image/gif": "gif",
+}
+
+FORMAT_EXTENSIONS = {
+    "png": {".png"},
+    "jpeg": {".jpg", ".jpeg"},
+    "webp": {".webp"},
+    "gif": {".gif"},
+}
+
+DEFAULT_EXTENSION = {
+    "png": ".png",
+    "jpeg": ".jpg",
+    "webp": ".webp",
+    "gif": ".gif",
+}
+
+
+def detect_image_format(content_type, content):
+    content_format = None
+    if content_type:
+        normalized_type = content_type.split(";")[0].strip().lower()
+        content_format = CONTENT_TYPE_TO_FORMAT.get(normalized_type)
+
+    magic_format = None
+    if content:
+        if content.startswith(PNG_SIGNATURE):
+            magic_format = "png"
+        elif content.startswith(JPEG_SIGNATURE):
+            magic_format = "jpeg"
+        elif (
+            len(content) >= 12
+            and content[:4] == RIFF_SIGNATURE
+            and content[8:12] == WEBP_SIGNATURE
+        ):
+            magic_format = "webp"
+
+    if content_format and magic_format and content_format != magic_format:
+        return magic_format
+
+    return content_format or magic_format
+
+
+def normalize_filename_extension(filename, detected_format):
+    if not detected_format:
+        return filename
+
+    base, extension = os.path.splitext(filename)
+    extension = extension.lower()
+    if extension in FORMAT_EXTENSIONS.get(detected_format, set()):
+        return filename
+
+    return f"{base}{DEFAULT_EXTENSION.get(detected_format, extension)}"
+
+
+def convert_to_webp(image_bytes, quality):
+    from PIL import Image
+
+    with io.BytesIO(image_bytes) as input_buffer:
+        with Image.open(input_buffer) as image:
+            with io.BytesIO() as output:
+                image.save(output, format="WEBP", quality=quality)
+                return output.getvalue()
+
+
+def prepare_image_payload(filename, response, webp):
+    content = response.content if response is not None else b""
+    detected_format = detect_image_format(response.headers.get("content-type") if response else None, content)
+    filename = normalize_filename_extension(filename, detected_format)
+
+    if webp and detected_format in {"png", "jpeg"} and content:
+        quality = 100 if detected_format == "png" else 90
+        try:
+            content = convert_to_webp(content, quality=quality)
+            base, _extension = os.path.splitext(filename)
+            filename = f"{base}.webp"
+        except Exception as exc:
+            logger.error(f"WebP conversion failed for {filename}: {exc}")
+
+    return filename, content
 
 
 def download_callback(result):
@@ -35,7 +126,7 @@ def download_callback(result):
 
 class Downloader(Singleton):
     def __init__(self, path='', threads=5, timeout=30, delay=0, exit_on_fail=False,
-                 no_filename_padding=False):
+                 no_filename_padding=False, webp=False):
         self.threads = threads
         self.path = str(path)
         self.timeout = timeout
@@ -44,12 +135,14 @@ class Downloader(Singleton):
         self.folder = None
         self.semaphore = None  # Will be initialized in async context
         self.no_filename_padding = no_filename_padding
+        self.webp = webp
 
     async def fiber(self, tasks):
         # Initialize semaphore in async context to use the current event loop
         if self.semaphore is None:
             self.semaphore = asyncio.Semaphore(self.threads)
 
+        download_tasks = [asyncio.create_task(task) for task in tasks]
         with Progress(
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
@@ -58,10 +151,18 @@ class Downloader(Singleton):
             TextColumn("[cyan]{task.completed}/{task.total}"),
             TextColumn("pages"),
             TimeRemainingColumn(),
+            console=console,
+            refresh_per_second=10,
+            transient=False,
         ) as progress:
-            download_task = progress.add_task("[green]Downloading", total=len(tasks))
+            download_task = progress.add_task("[green]Downloading", total=len(download_tasks))
 
-            for completed_task in asyncio.as_completed(tasks):
+            for completed_task in asyncio.as_completed(download_tasks):
+                if constant.STOP_REQUESTED:
+                    for task in download_tasks:
+                        if not task.done():
+                            task.cancel()
+                    raise KeyboardInterrupt
                 try:
                     result = await completed_task
                     if result[0] > 0:
@@ -69,6 +170,11 @@ class Downloader(Singleton):
                     else:
                         progress.update(download_task, advance=1)
                         raise Exception(f'{result[1]} download failed, return value {result[0]}')
+                except KeyboardInterrupt:
+                    for task in download_tasks:
+                        if not task.done():
+                            task.cancel()
+                    raise
                 except Exception as e:
                     # Log errors using logger, rich will handle the display
                     progress.console.print(f'[red]Error:[/red] {e}')
@@ -119,6 +225,8 @@ class Downloader(Singleton):
 
         except KeyboardInterrupt:
             logger.info('Download interrupted by user')
+            if constant.STOP_REQUESTED:
+                raise
             return -4, url
 
         except (httpx.HTTPStatusError, httpx.TimeoutException, httpx.ConnectError):
@@ -149,15 +257,10 @@ class Downloader(Singleton):
         if response is None:
             logger.error('Error: Response is None')
             return False
+        filename, content = prepare_image_payload(filename, response, self.webp)
         save_file_path = os.path.join(self.folder, filename)
         async with aiofiles.open(save_file_path, 'wb') as f:
-            if response is not None:
-                length = response.headers.get('content-length')
-                if length is None:
-                    await f.write(response.content)
-                else:
-                    async for chunk in response.aiter_bytes(2048):
-                        await f.write(chunk)
+            await f.write(content)
         return True
 
     def create_storage_object(self, folder: str):
@@ -223,19 +326,9 @@ class CompressedDownloader(Downloader):
         if self.zip_lock is None:
             self.zip_lock = asyncio.Lock()
 
-        image_data = io.BytesIO()
-        length = response.headers.get('content-length')
-        if length is None:
-            content = await response.read()
-            image_data.write(content)
-        else:
-            async for chunk in response.aiter_bytes(2048):
-                image_data.write(chunk)
-
-        image_data.seek(0)
-
+        filename, content = prepare_image_payload(filename, response, self.webp)
         # Acquire lock before writing to zipfile to prevent race conditions
         async with self.zip_lock:
-            self.zipfile.writestr(filename, image_data.read())
+            self.zipfile.writestr(filename, content)
 
         return True

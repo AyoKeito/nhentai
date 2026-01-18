@@ -38,6 +38,7 @@ FAV_URL = f'{BASE_URL}/favorites/'
 PATH_SEPARATOR = os.path.sep
 
 RETRY_TIMES = 3
+STOP_REQUESTED = False
 
 
 IMAGE_URL = f'{urlparse(BASE_URL).scheme}://i1.{urlparse(BASE_URL).hostname}/galleries'
@@ -61,7 +62,7 @@ CONFIG = {
     'cookie': '',
     'language': '',
     'template': '',
-    'useragent': 'nhentai command line client (https://github.com/RicterZ/nhentai)',
+    'useragent': 'nhentai command line client (https://github.com/AyoKeito/nhentai)',
     'max_filename': 85
 }
 

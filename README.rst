@@ -117,7 +117,7 @@ See ``COOKIE_GUIDE.md`` for detailed instructions.
 .. |ve| unicode:: U+22EE .. https://www.compart.com/en/unicode/U+22EE
 .. |ld| unicode:: U+2014 .. https://www.compart.com/en/unicode/U+2014
 
-.. image:: https://github.com/RicterZ/nhentai/raw/master/images/usage.png
+.. image:: https://github.com/AyoKeito/nhentai/raw/master/images/usage.png
     :alt: nhentai
     :align: center
 
@@ -215,6 +215,8 @@ Other options:
                             slow down between downloading every doujinshi
       --retry=RETRY         retry times when downloading failed
       --exit-on-fail        exit on fail to prevent generating incomplete files
+      --webp                convert PNG/JPEG downloads to WebP (PNG quality 100,
+                            JPEG quality 90)
       --proxy=PROXY         store a proxy, for example: -p "http://127.0.0.1:1080"
       -f FILE, --file=FILE  read gallery IDs from file.
       --format=NAME_FORMAT  format the saved folder name
@@ -266,13 +268,13 @@ Set `NHENTAI` env var to your nhentai mirror.
     NHENTAI=https://h.loli.club nhentai --id 123456
 
 
-.. image:: https://github.com/RicterZ/nhentai/raw/master/images/search.png
+.. image:: https://github.com/AyoKeito/nhentai/raw/master/images/search.png
     :alt: nhentai
     :align: center
-.. image:: https://github.com/RicterZ/nhentai/raw/master/images/download.png
+.. image:: https://github.com/AyoKeito/nhentai/raw/master/images/download.png
     :alt: nhentai
     :align: center
-.. image:: https://github.com/RicterZ/nhentai/raw/master/images/viewer.png
+.. image:: https://github.com/AyoKeito/nhentai/raw/master/images/viewer.png
     :alt: nhentai
     :align: center
 
