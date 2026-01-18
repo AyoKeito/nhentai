@@ -13,7 +13,7 @@ from nhentai.cmdline import cmd_parser, banner, write_config
 from nhentai.parser import doujinshi_parser, search_parser, legacy_search_parser, print_doujinshi, favorites_parser
 from nhentai.doujinshi import Doujinshi
 from nhentai.downloader import Downloader, CompressedDownloader
-from nhentai.logger import logger
+from nhentai.logger import logger, console
 from nhentai.constant import BASE_URL
 from nhentai.utils import generate_html, generate_doc, generate_main_html, generate_metadata, \
     paging, check_cookie, signal_handler, DB, move_to_folder
@@ -139,6 +139,9 @@ def run_downloads(options, doujinshi_ids):
             TextColumn("[cyan]{task.completed}/{task.total}"),
             TextColumn("favorites"),
             TimeRemainingColumn(),
+            console=console,
+            refresh_per_second=10,
+            transient=False,
         )
         if options.favorites and options.is_download and doujinshi_ids
         else nullcontext()
