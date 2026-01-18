@@ -117,7 +117,7 @@ See ``COOKIE_GUIDE.md`` for detailed instructions.
 .. |ve| unicode:: U+22EE .. https://www.compart.com/en/unicode/U+22EE
 .. |ld| unicode:: U+2014 .. https://www.compart.com/en/unicode/U+2014
 
-.. image:: https://github.com/RicterZ/nhentai/raw/master/images/usage.png
+.. image:: https://github.com/AyoKeito/nhentai/raw/master/images/usage.png
     :alt: nhentai
     :align: center
 
@@ -266,13 +266,13 @@ Set `NHENTAI` env var to your nhentai mirror.
     NHENTAI=https://h.loli.club nhentai --id 123456
 
 
-.. image:: https://github.com/RicterZ/nhentai/raw/master/images/search.png
+.. image:: https://github.com/AyoKeito/nhentai/raw/master/images/search.png
     :alt: nhentai
     :align: center
-.. image:: https://github.com/RicterZ/nhentai/raw/master/images/download.png
+.. image:: https://github.com/AyoKeito/nhentai/raw/master/images/download.png
     :alt: nhentai
     :align: center
-.. image:: https://github.com/RicterZ/nhentai/raw/master/images/viewer.png
+.. image:: https://github.com/AyoKeito/nhentai/raw/master/images/viewer.png
     :alt: nhentai
     :align: center
 
