@@ -11,7 +11,7 @@ import aiofiles
 from urllib.parse import urlparse
 from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn
 from nhentai import constant
-from nhentai.logger import logger
+from nhentai.logger import logger, console
 from nhentai.utils import Singleton, async_request
 
 
@@ -59,6 +59,9 @@ class Downloader(Singleton):
             TextColumn("[cyan]{task.completed}/{task.total}"),
             TextColumn("pages"),
             TimeRemainingColumn(),
+            console=console,
+            refresh_per_second=10,
+            transient=False,
         ) as progress:
             download_task = progress.add_task("[green]Downloading", total=len(download_tasks))
 
