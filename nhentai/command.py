@@ -5,6 +5,7 @@ import sys
 import signal
 import platform
 import urllib3.exceptions
+from contextlib import nullcontext
 from enum import Enum
 
 from nhentai import constant
@@ -16,6 +17,7 @@ from nhentai.logger import logger
 from nhentai.constant import BASE_URL
 from nhentai.utils import generate_html, generate_doc, generate_main_html, generate_metadata, \
     paging, check_cookie, signal_handler, DB, move_to_folder
+from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn
 
 
 def configure_runtime(options):
@@ -135,41 +137,66 @@ def run_downloads(options, doujinshi_ids):
 
     failed_downloads = []
 
-    for doujinshi_id in doujinshi_ids:
-        status, message, doujinshi = download_one(doujinshi_id, options, downloader)
-        if status is DownloadStatus.FAILED:
-            logger.error(message)
-            failed_downloads.append(doujinshi_id)
-            if options.exit_on_fail:
-                sys.exit(1)
-            continue
-        if status is DownloadStatus.SKIPPED and message:
-            logger.info(message)
+    progress_context = (
+        Progress(
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TextColumn("•"),
+            TextColumn("[cyan]{task.completed}/{task.total}"),
+            TextColumn("favorites"),
+            TimeRemainingColumn(),
+        )
+        if options.favorites and options.is_download and doujinshi_ids
+        else nullcontext()
+    )
 
-        if options.generate_metadata:
-            generate_metadata(options.output_dir, doujinshi)
+    with progress_context as progress:
+        favorites_task = (
+            progress.add_task("[green]Favorites", total=len(doujinshi_ids))
+            if progress is not None
+            else None
+        )
+        for doujinshi_id in doujinshi_ids:
+            status, message, doujinshi = download_one(doujinshi_id, options, downloader)
+            if status is DownloadStatus.FAILED:
+                logger.error(message)
+                failed_downloads.append(doujinshi_id)
+                if options.exit_on_fail:
+                    sys.exit(1)
+                if favorites_task is not None:
+                    progress.update(favorites_task, advance=1)
+                continue
+            if status is DownloadStatus.SKIPPED and message:
+                logger.info(message)
 
-        if options.is_save_download_history:
-            with DB() as db:
-                db.add_one(doujinshi.id)
+            if options.generate_metadata:
+                generate_metadata(options.output_dir, doujinshi)
 
-        if not options.is_nohtml:
-            generate_html(options.output_dir, doujinshi, template=constant.CONFIG['template'])
+            if options.is_save_download_history:
+                with DB() as db:
+                    db.add_one(doujinshi.id)
 
-        if options.is_cbz:
-            generate_doc('cbz', options.output_dir, doujinshi, options.regenerate)
+            if not options.is_nohtml:
+                generate_html(options.output_dir, doujinshi, template=constant.CONFIG['template'])
 
-        if options.is_pdf:
-            generate_doc('pdf', options.output_dir, doujinshi, options.regenerate)
-
-        if options.move_to_folder:
             if options.is_cbz:
-                move_to_folder(options.output_dir, doujinshi, 'cbz')
-            if options.is_pdf:
-                move_to_folder(options.output_dir, doujinshi, 'pdf')
+                generate_doc('cbz', options.output_dir, doujinshi, options.regenerate)
 
-        if options.rm_origin_dir:
-            shutil.rmtree(os.path.join(options.output_dir, doujinshi.filename), ignore_errors=True)
+            if options.is_pdf:
+                generate_doc('pdf', options.output_dir, doujinshi, options.regenerate)
+
+            if options.move_to_folder:
+                if options.is_cbz:
+                    move_to_folder(options.output_dir, doujinshi, 'cbz')
+                if options.is_pdf:
+                    move_to_folder(options.output_dir, doujinshi, 'pdf')
+
+            if options.rm_origin_dir:
+                shutil.rmtree(os.path.join(options.output_dir, doujinshi.filename), ignore_errors=True)
+
+            if favorites_task is not None:
+                progress.update(favorites_task, advance=1)
 
     if options.main_viewer:
         generate_main_html(options.output_dir)
