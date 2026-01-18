@@ -109,6 +109,20 @@ class TestImageHandling(unittest.TestCase):
                 data = zf.read('01.webp')[:12]
                 self.assertTrue(data.startswith(b'RIFF') and data[8:12] == b'WEBP')
 
+    def test_zip_extension_correction_without_webp(self):
+        jpeg_bytes = self._make_image_bytes('JPEG')
+        response = httpx.Response(200, headers={'content-type': 'image/jpeg'}, content=jpeg_bytes)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            zip_base = os.path.join(tmpdir, 'archive')
+            downloader = CompressedDownloader(path=tmpdir, webp=False)
+            downloader.create_storage_object(zip_base)
+            asyncio.run(downloader.save('01.png', response))
+            downloader.close()
+
+            zip_path = f'{zip_base}.zip'
+            with zipfile.ZipFile(zip_path, 'r') as zf:
+                self.assertIn('01.jpg', zf.namelist())
+
 
 if __name__ == '__main__':
     unittest.main()
