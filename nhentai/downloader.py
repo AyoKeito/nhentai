@@ -85,10 +85,11 @@ def normalize_filename_extension(filename, detected_format):
 def convert_to_webp(image_bytes, quality):
     from PIL import Image
 
-    with Image.open(io.BytesIO(image_bytes)) as image:
-        output = io.BytesIO()
-        image.save(output, format="WEBP", quality=quality)
-        return output.getvalue()
+    with io.BytesIO(image_bytes) as input_buffer:
+        with Image.open(input_buffer) as image:
+            with io.BytesIO() as output:
+                image.save(output, format="WEBP", quality=quality)
+                return output.getvalue()
 
 
 def prepare_image_payload(filename, response, webp):
@@ -326,10 +327,8 @@ class CompressedDownloader(Downloader):
             self.zip_lock = asyncio.Lock()
 
         filename, content = prepare_image_payload(filename, response, self.webp)
-        image_data = io.BytesIO(content)
-
         # Acquire lock before writing to zipfile to prevent race conditions
         async with self.zip_lock:
-            self.zipfile.writestr(filename, image_data.read())
+            self.zipfile.writestr(filename, content)
 
         return True
