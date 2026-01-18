@@ -76,9 +76,10 @@ class Doujinshi(object):
     def show(self):
         logger.info(f'Print doujinshi information of {self.id}\n{tabulate(self.table)}')
 
-    def check_if_need_download(self, options):
-        if options.no_download:
-            return False
+    def _get_base_path(self):
+        if not self.downloader:
+            logger.error('Downloader has not been loaded')
+            return None
 
         base_path = os.path.join(self.downloader.path, self.filename)
 
@@ -88,11 +89,18 @@ class Doujinshi(object):
         if not abs_base.startswith(expected_prefix + os.sep) and abs_base != expected_prefix:
             logger.error('Invalid filename detected: path traversal attempt blocked')
             logger.error(f'Expected: {expected_prefix}, Got: {abs_base}')
+            return None
+
+        return base_path
+
+    def has_existing_artifacts(self, options, include_directory=False):
+        base_path = self._get_base_path()
+        if base_path is None:
             return False
 
         # regenerate, re-download
         if options.regenerate:
-            return True
+            return False
 
         # pdf or cbz file exists, skip re-download
         # doujinshi directory may not exist b/c of --rm-origin-dir option set.
@@ -106,6 +114,26 @@ class Doujinshi(object):
 
         ret = list(filter(lambda s: s is not None, [ret_cbz, ret_pdf]))
         if ret and all(ret):
+            return True
+
+        if include_directory and os.path.isdir(base_path):
+            return True
+
+        return False
+
+    def check_if_need_download(self, options):
+        if options.no_download:
+            return False
+
+        base_path = self._get_base_path()
+        if base_path is None:
+            return False
+
+        # regenerate, re-download
+        if options.regenerate:
+            return True
+
+        if self.has_existing_artifacts(options):
             return False
 
         # doujinshi directory doesn't exist, re-download

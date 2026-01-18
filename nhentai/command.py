@@ -100,14 +100,7 @@ def validate_options(options):
         sys.exit(1)
 
 
-def download_one(doujinshi_id, options, downloader):
-    doujinshi_info = doujinshi_parser(doujinshi_id)
-    if not doujinshi_info:
-        return DownloadStatus.FAILED, f'Failed to get info for doujinshi {doujinshi_id}', None
-
-    doujinshi = Doujinshi(name_format=options.name_format, **doujinshi_info)
-    doujinshi.downloader = downloader
-
+def download_one(doujinshi, options):
     if not doujinshi.check_if_need_download(options):
         return (
             DownloadStatus.SKIPPED,
@@ -158,7 +151,32 @@ def run_downloads(options, doujinshi_ids):
             else None
         )
         for doujinshi_id in doujinshi_ids:
-            status, message, doujinshi = download_one(doujinshi_id, options, downloader)
+            doujinshi_info = doujinshi_parser(doujinshi_id)
+            if not doujinshi_info:
+                logger.error(f'Failed to get info for doujinshi {doujinshi_id}')
+                failed_downloads.append(doujinshi_id)
+                if options.exit_on_fail:
+                    sys.exit(1)
+                if favorites_task is not None:
+                    progress.update(favorites_task, advance=1)
+                continue
+
+            doujinshi = Doujinshi(name_format=options.name_format, **doujinshi_info)
+            doujinshi.downloader = downloader
+
+            if options.is_save_download_history and not options.regenerate:
+                if doujinshi.has_existing_artifacts(options, include_directory=True):
+                    logger.info(
+                        'Skip download doujinshi because output already exists for '
+                        f'{doujinshi.name}'
+                    )
+                    with DB() as db:
+                        db.add_one(doujinshi.id)
+                    if favorites_task is not None:
+                        progress.update(favorites_task, advance=1)
+                    continue
+
+            status, message, doujinshi = download_one(doujinshi, options)
             if status is DownloadStatus.FAILED:
                 logger.error(message)
                 failed_downloads.append(doujinshi_id)
