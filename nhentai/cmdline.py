@@ -113,6 +113,8 @@ def cmd_parser():
 
     parser.add_argument('--no-filename-padding', action='store_true', dest='no_filename_padding',
                         default=False, help='no padding in the images filename, such as \'001.jpg\'')
+    parser.add_argument('--webp', action='store_true', dest='webp', default=False,
+                        help='convert PNG/JPEG downloads to WebP (PNG quality 100, JPEG quality 90)')
 
     # generate options
     parser.add_argument('--html', dest='html_viewer', type=str, nargs='?', const='.',

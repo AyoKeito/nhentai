@@ -215,6 +215,8 @@ Other options:
                             slow down between downloading every doujinshi
       --retry=RETRY         retry times when downloading failed
       --exit-on-fail        exit on fail to prevent generating incomplete files
+      --webp                convert PNG/JPEG downloads to WebP (PNG quality 100,
+                            JPEG quality 90)
       --proxy=PROXY         store a proxy, for example: -p "http://127.0.0.1:1080"
       -f FILE, --file=FILE  read gallery IDs from file.
       --format=NAME_FORMAT  format the saved folder name
