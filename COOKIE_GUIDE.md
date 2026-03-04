@@ -23,15 +23,17 @@ This is the most reliable method because it shows all cookies directly.
    - `cf_clearance` (Cloudflare bypass)
    - `sessionid` (your login session)
    - `csrftoken` (CSRF protection)
-   - `session-affinity` (load balancer session)
+   - `techaro.lol-anubis-auth`
+   - `techaro.lol-anubis-cookie-verification`
 7. **Manually copy each Value** and format as:
    ```
-   cf_clearance=VALUE1;sessionid=VALUE2;csrftoken=VALUE3;session-affinity=VALUE4
+   cf_clearance=VALUE1;sessionid=VALUE2;csrftoken=VALUE3;techaro.lol-anubis-auth=VALUE4;techaro.lol-anubis-cookie-verification=VALUE5
    ```
 8. **Set the complete cookie string**:
    ```bash
-   nhentai --cookie="cf_clearance=VALUE1;sessionid=VALUE2;csrftoken=VALUE3;session-affinity=VALUE4"
+   nhentai --cookie="cf_clearance=VALUE1;sessionid=VALUE2;csrftoken=VALUE3;techaro.lol-anubis-auth=VALUE4;techaro.lol-anubis-cookie-verification=VALUE5"
    ```
+General rule of thumb is to pass ALL nhentai cookies you can find. It never hurts to pass extras.
 
 ### Chrome:
 
@@ -86,7 +88,6 @@ Note: Cookies expire after some time. If downloads stop working, you'll need to:
 - **cf_clearance**: Bypasses Cloudflare's anti-bot protection (required)
 - **sessionid**: Maintains your login session (required for favorites)
 - **csrftoken**: Security token for form submissions (required for favorites)
-- **session-affinity**: Load balancer session tracking (required for some features)
 
 ## Why Image Requests Don't Show All Cookies
 
@@ -94,8 +95,7 @@ When you look at the Network tab, you might notice:
 
 ```
 Request to nhentai.net:
-Cookie: cf_clearance=...; sessionid=...; csrftoken=...; session-affinity=...
-
+Cookie: cf_clearance=...; sessionid=...; csrftoken=...; techaro.lol-anubis-auth=...; techaro.lol-anubis-cookie-verification=...
 Request to t4.nhentai.net (images):
 Cookie: cf_clearance=...
 ```

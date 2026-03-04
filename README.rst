@@ -84,7 +84,7 @@ The complete cookie format is:
 
 .. code-block::
 
-    "cf_clearance=VALUE;sessionid=VALUE;csrftoken=VALUE;session-affinity=VALUE"
+    "cf_clearance=VALUE;sessionid=VALUE;csrftoken=VALUE;techaro.lol-anubis-auth=VALUE;techaro.lol-anubis-cookie-verification=VALUE"
 
 **How to get ALL cookies:**
 
@@ -97,7 +97,7 @@ The complete cookie format is:
    - **Firefox**: Storage tab → Cookies → https://nhentai.net
    - **Chrome**: Application tab → Storage → Cookies → https://nhentai.net
 
-4. Copy ALL cookie values and format as: ``"cf_clearance=VALUE;sessionid=VALUE;csrftoken=VALUE;session-affinity=VALUE"``
+4. Copy ALL cookie values and format as: ``"cf_clearance=VALUE;sessionid=VALUE;csrftoken=VALUE;techaro.lol-anubis-auth=VALUE;techaro.lol-anubis-cookie-verification=VALUE"``
 5. Set it with: ``nhentai --cookie="YOUR_COOKIES_HERE"``
 
 **Method 2: Network Tab (Alternative)**
