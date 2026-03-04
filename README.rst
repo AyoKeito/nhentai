@@ -78,7 +78,7 @@ Usage
 **COOKIE REQUIREMENTS:**
 
 - **For basic downloads and search**: Only ``cf_clearance`` and ``useragent`` are needed
-- **For accessing favorites**: You need ALL cookies: ``cf_clearance``, ``sessionid``, ``csrftoken``, and ``session-affinity``
+- **For accessing favorites**: You need ALL cookies you can find: ``cf_clearance``, ``sessionid``, ``csrftoken``, and possibly others.
 
 The complete cookie format is:
 
