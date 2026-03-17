@@ -8,7 +8,7 @@ console = Console()
 
 logging.addLevelName(16, "SUCCESS")
 logger = logging.getLogger("nhentai")
-LOGGER_HANDLER = RichHandler(console=console, markup=True, rich_tracebacks=True)
+LOGGER_HANDLER = RichHandler(console=console, markup=False, rich_tracebacks=True)
 FORMATTER = logging.Formatter("%(message)s")
 LOGGER_HANDLER.setFormatter(FORMATTER)
 logger.addHandler(LOGGER_HANDLER)
