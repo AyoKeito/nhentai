@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nhentai"
-version = "0.7.3"
+version = "0.7.4"
 description = "nhentai doujinshi downloader"
 authors = ["Ricter Z <ricterzheng@gmail.com>", "AyoKeito"]
 license = "MIT"

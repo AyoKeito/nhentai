@@ -266,7 +266,35 @@ def cmd_parser():
         sys.exit(1)
 
     if not args.keyword and not args.id and not args.favorites and not args.artist:
-        parser.print_help()
+        modifier_flags = []
+        if args.is_nohtml:
+            modifier_flags.append('--no-html')
+        if args.generate_metadata:
+            modifier_flags.append('--meta')
+        if args.is_cbz:
+            modifier_flags.append('--cbz')
+        if args.is_pdf:
+            modifier_flags.append('--pdf')
+        if args.rm_origin_dir:
+            modifier_flags.append('--rm-origin-dir')
+        if args.move_to_folder:
+            modifier_flags.append('--move-to-folder')
+        if args.no_download:
+            modifier_flags.append('--no-download')
+        if args.exit_on_fail:
+            modifier_flags.append('--exit-on-fail')
+        if args.is_save_download_history:
+            modifier_flags.append('--save-download-history')
+        if args.webp:
+            modifier_flags.append('--webp')
+        if args.zip:
+            modifier_flags.append('--zip')
+
+        if modifier_flags:
+            logger.error(f'{", ".join(modifier_flags)} must be used together with --id, --search, '
+                         f'--favorites, or --artist.')
+        else:
+            parser.print_help()
         sys.exit(1)
 
     if args.threads <= 0:
